@@ -1,0 +1,7 @@
+weights:
+  title_keyword: 3
+  summary_keyword: 1
+  topic_match: 2
+
+minimum_score: 1
+

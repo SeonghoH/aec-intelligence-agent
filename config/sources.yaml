@@ -1,0 +1,8 @@
+sources:
+  crossref:
+    enabled: true
+    description: "Placeholder for scholarly paper metadata from Crossref."
+  arxiv:
+    enabled: true
+    description: "Placeholder for preprints from arXiv."
+

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aec-intelligence-agent"
+version = "0.1.0"
+description = "MVP skeleton for a Python-based AEC intelligence briefing agent."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "PyYAML>=6.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+aec-intel-agent = "aec_intel_agent.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aec_intel_agent"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+

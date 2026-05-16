@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment
+.env
+
+# Generated data and outputs
+data/raw/*
+data/processed/*
+outputs/*
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+

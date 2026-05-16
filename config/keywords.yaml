@@ -1,0 +1,40 @@
+topics:
+  bim:
+    - BIM
+    - building information modeling
+    - building information modelling
+  openbim:
+    - openBIM
+    - IFC
+    - buildingSMART
+  digital_architecture:
+    - digital architecture
+    - computational design
+    - parametric design
+  construction_technology:
+    - construction technology
+    - contech
+    - construction automation
+  digital_twin:
+    - digital twin
+    - cyber physical
+    - sensor data
+  ai_in_construction:
+    - AI in construction
+    - artificial intelligence
+    - machine learning
+    - computer vision
+  structural_steel:
+    - structural steel
+    - steel structure
+    - steel frame
+  steel_construction:
+    - steel construction
+    - steel fabrication
+    - steel erection
+  embodied_carbon:
+    - LCA
+    - life cycle assessment
+    - embodied carbon
+    - carbon footprint
+
