@@ -125,11 +125,24 @@ silently and only the Markdown file is produced.
 
 **Duplicate handling**
 
-- Daily briefings are deduplicated by `Date`. Re-running on the same day
-  skips the existing page. To force a refresh, delete the page in Notion
-  first.
-- Research items are deduplicated by `DOI` first, then `URL`. If both are
-  missing, the item is always inserted (cannot be deduplicated).
+- **Daily Briefings:** deduplicated by `Date`. If a page with the same date
+  already exists, the upload is skipped and the log shows
+  `Notion: daily briefing already exists for YYYY-MM-DD, skipped.` To force
+  a refresh, delete the existing page in Notion first.
+- **Research Items:** deduplicated by `DOI` → `URL` → `Title` (in priority
+  order). The first non-empty key is used:
+  1. **DOI** — lowercased and stripped of any `https://doi.org/` prefix
+     before matching (case-insensitive).
+  2. **URL** — trailing slashes, UTM parameters, and host casing are
+     normalized before matching.
+  3. **Title** — used only when both DOI and URL are missing. The match is
+     case-sensitive and whitespace-sensitive on the Notion side (Notion's
+     API can't normalize titles in filters). This is a documented MVP
+     limitation; in practice, items that reach the title fallback are rare.
+- Failed duplicate checks do not crash the pipeline. The item is counted
+  in `items_failed`, a warning is logged, and the run continues. The final
+  log line is:
+  `Notion upload complete: daily_created=N, daily_skipped=N, items_uploaded=N, items_skipped=N, items_failed=N.`
 
 **Local testing**
 

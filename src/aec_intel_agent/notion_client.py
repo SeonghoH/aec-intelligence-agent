@@ -1,8 +1,9 @@
 """Optional Notion upload integration.
 
 The pipeline calls `upload_to_notion()` after the Markdown briefing is written.
-If any of the required environment variables is missing, the upload is
-skipped silently so the pipeline can keep running.
+If any required environment variable is missing, the upload is skipped silently
+so the pipeline can keep running. All Notion failures are logged and swallowed:
+they never block the Markdown briefing.
 """
 
 from __future__ import annotations
@@ -16,6 +17,11 @@ from typing import Any
 
 import requests
 
+from aec_intel_agent.deduplication import (
+    normalize_doi,
+    normalize_title,
+    normalize_url,
+)
 from aec_intel_agent.models import StandardItem
 
 logger = logging.getLogger(__name__)
@@ -24,10 +30,9 @@ NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
 REQUEST_TIMEOUT_SECONDS = 30
 RICH_TEXT_CHUNK_SIZE = 2000
-MAX_RICH_TEXT_CHUNKS = 5  # 10k chars max per rich_text property
+MAX_RICH_TEXT_CHUNKS = 5
 MAX_MULTI_SELECT = 50
 
-# Internal mirrors of briefing routing topics. Duplicated to avoid coupling.
 _STEEL_TOPICS = {"structural_steel", "steel_construction"}
 _LCA_TOPICS = {"embodied_carbon"}
 _BIM_TOPICS = {
@@ -49,7 +54,6 @@ SAVE_THRESHOLD = 5
 
 
 def is_configured() -> bool:
-    """Return True only when all three Notion env vars are present and non-empty."""
     return all(
         os.environ.get(var)
         for var in ("NOTION_TOKEN", "NOTION_DAILY_DB_ID", "NOTION_RESEARCH_DB_ID")
@@ -187,17 +191,21 @@ def build_research_item_properties(
     relevance_to_seongho: str,
     summary_text: str,
 ) -> dict[str, Any]:
+    """Build Notion properties. DOI and URL are stored normalized so that
+    future duplicate-check queries use the same canonical form."""
     metadata = item.metadata if isinstance(item.metadata, dict) else {}
-    source_type = (
-        metadata.get("source_type") or item.item_type or "article"
-    )
+    source_type = metadata.get("source_type") or item.item_type or "article"
+
+    doi_norm = normalize_doi(item.doi) or ""
+    url_norm = normalize_url(item.url)
+
     return {
         "Title": _title_prop(item.title),
         "Published Date": _date_prop(item.published_date),
         "Source": _select_prop(item.source),
         "Source Type": _select_prop(source_type),
-        "DOI": _chunked_rich_text(item.doi or ""),
-        "URL": _url_prop(item.url),
+        "DOI": _chunked_rich_text(doi_norm),
+        "URL": _url_prop(url_norm),
         "Score": _number_prop(item.score),
         "Tags": _multi_select_prop(item.topics),
         "Relevance": _select_prop(_relevance_label(item)),
@@ -245,20 +253,46 @@ def _find_existing_briefing(token: str, db_id: str, date_str: str) -> str | None
 
 
 def _find_existing_research_item(
-    token: str, db_id: str, doi: str | None, url: str | None
+    token: str,
+    db_id: str,
+    doi: str | None,
+    url: str | None,
+    title: str | None,
 ) -> str | None:
-    if doi:
+    """Look up a duplicate by DOI → URL → title (case-sensitive title match).
+
+    All three keys are normalized before querying. Title fallback uses Notion's
+    title `equals` filter, which is case-sensitive — see README for limits.
+    """
+    doi_norm = normalize_doi(doi)
+    if doi_norm:
         results = _query_database(
-            token, db_id, {"property": "DOI", "rich_text": {"equals": doi}}
+            token, db_id, {"property": "DOI", "rich_text": {"equals": doi_norm}}
         )
         if results:
             return results[0]["id"]
-    if url:
+
+    url_norm = normalize_url(url)
+    if url_norm:
         results = _query_database(
-            token, db_id, {"property": "URL", "url": {"equals": url}}
+            token, db_id, {"property": "URL", "url": {"equals": url_norm}}
         )
         if results:
             return results[0]["id"]
+
+    title_norm = normalize_title(title)
+    if title_norm:
+        # Notion's API can't match against our normalized form, so we query
+        # using the stripped original title. This is an exact, case-sensitive
+        # comparison against the stored Title.
+        results = _query_database(
+            token,
+            db_id,
+            {"property": "Title", "title": {"equals": (title or "").strip()}},
+        )
+        if results:
+            return results[0]["id"]
+
     return None
 
 
@@ -273,23 +307,27 @@ def upload_to_notion(
     total_collected: int,
     generated_at: datetime | None = None,
 ) -> dict[str, int]:
-    """Upload the daily briefing and research items to Notion.
+    """Upload daily briefing + research items to Notion.
 
-    Returns a counts dict. Skips silently when env vars are missing, and
-    logs+swallows any exception so the pipeline is never blocked.
+    Returns counters. Skips silently when env vars are missing. Logs and
+    swallows every exception so the main pipeline is never blocked.
     """
-    result = {"daily_uploaded": 0, "items_uploaded": 0, "items_skipped": 0}
+    result = {
+        "daily_created": 0,
+        "daily_skipped": 0,
+        "items_uploaded": 0,
+        "items_skipped": 0,
+        "items_failed": 0,
+    }
 
     if not is_configured():
         logger.info("Notion env vars not set — skipping Notion upload.")
         return result
 
-    # Resolve env once. They're guaranteed present by is_configured().
     token = os.environ["NOTION_TOKEN"]
     daily_db = os.environ["NOTION_DAILY_DB_ID"]
     research_db = os.environ["NOTION_RESEARCH_DB_ID"]
 
-    # Lazy import to avoid a cycle with briefing -> notion_client.
     from aec_intel_agent.briefing import (
         _build_summary,
         _relevance_to_seongho,
@@ -302,11 +340,22 @@ def upload_to_notion(
     # ---- Daily briefing -------------------------------------------------
     try:
         existing = _find_existing_briefing(token, daily_db, date_str)
-        if existing:
-            logger.info(
-                "Notion: daily briefing for %s already exists — skipping.", date_str
-            )
-        else:
+    except Exception as exc:
+        logger.warning(
+            "Notion: duplicate check failed for daily briefing (%s): %s",
+            date_str,
+            exc,
+        )
+        existing = None
+        skip_daily_create = True  # don't risk a duplicate after a failed check
+    else:
+        skip_daily_create = False
+
+    if existing:
+        logger.info("Notion: daily briefing already exists for %s, skipped.", date_str)
+        result["daily_skipped"] = 1
+    elif not skip_daily_create:
+        try:
             markdown = (
                 briefing_path.read_text(encoding="utf-8")
                 if briefing_path.exists()
@@ -321,20 +370,33 @@ def upload_to_notion(
                 github_url=_github_output_url(briefing_path),
             )
             _create_page(token, daily_db, props)
-            result["daily_uploaded"] = 1
-            logger.info("Notion: uploaded daily briefing for %s.", date_str)
-    except Exception as exc:
-        logger.warning("Notion: failed to upload daily briefing: %s", exc)
+            result["daily_created"] = 1
+            logger.info("Notion: created daily briefing for %s.", date_str)
+        except Exception as exc:
+            logger.warning("Notion: failed to create daily briefing: %s", exc)
 
     # ---- Research items -------------------------------------------------
     for item in items:
+        # Step 1: duplicate check.
         try:
             existing = _find_existing_research_item(
-                token, research_db, item.doi, item.url
+                token, research_db, item.doi, item.url, item.title
             )
-            if existing:
-                result["items_skipped"] += 1
-                continue
+        except Exception as exc:
+            logger.warning(
+                "Notion: duplicate check failed for item %r: %s",
+                (item.title or "")[:60],
+                exc,
+            )
+            result["items_failed"] += 1
+            continue
+
+        if existing:
+            result["items_skipped"] += 1
+            continue
+
+        # Step 2: create page.
+        try:
             props = build_research_item_properties(
                 item,
                 why_it_matters=_why_it_matters(item),
@@ -345,13 +407,19 @@ def upload_to_notion(
             result["items_uploaded"] += 1
         except Exception as exc:
             logger.warning(
-                "Notion: failed to upload item %r: %s", (item.title or "")[:60], exc
+                "Notion: failed to create item %r: %s",
+                (item.title or "")[:60],
+                exc,
             )
+            result["items_failed"] += 1
 
     logger.info(
-        "Notion upload complete: daily=%d, items uploaded=%d, items skipped=%d.",
-        result["daily_uploaded"],
+        "Notion upload complete: daily_created=%d, daily_skipped=%d, "
+        "items_uploaded=%d, items_skipped=%d, items_failed=%d.",
+        result["daily_created"],
+        result["daily_skipped"],
         result["items_uploaded"],
         result["items_skipped"],
+        result["items_failed"],
     )
     return result

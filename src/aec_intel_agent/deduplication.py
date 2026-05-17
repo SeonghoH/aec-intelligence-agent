@@ -20,6 +20,17 @@ def normalize_doi(doi: str | None) -> str | None:
     return normalized.strip() or None
 
 
+def normalize_title(title: str | None) -> str | None:
+    """Normalize a title for weak duplicate matching.
+
+    Lowercases, strips, and collapses repeated whitespace.
+    """
+    if not title:
+        return None
+    collapsed = " ".join(str(title).split()).strip().lower()
+    return collapsed or None
+
+
 def normalize_url(url: str | None) -> str | None:
     """Normalize URLs enough for simple duplicate detection."""
 
