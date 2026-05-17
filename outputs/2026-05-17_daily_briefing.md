@@ -3,10 +3,10 @@ Date: 2026-05-17
 
 ## Executive Summary
 
-- 수집 항목 수: 40건
-- 포함 항목 수: 13건
-- 주요 주제: bim, embodied_carbon, openbim
-- 오늘 결과 평가: 보통 (Moderate)
+- 수집 항목 수: 44건
+- 포함 항목 수: 17건
+- 주요 주제: bim, openbim, embodied_carbon
+- 오늘 결과 평가: 강함 (Strong)
 ## Must Read
 
 ### Advancing wharf structural health monitoring with openBIM: Evaluating and extending IFC for enhanced interoperability
@@ -57,7 +57,43 @@ Date: 2026-05-17
 - Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
 - URL: https://doi.org/10.1016/j.enbuild.2026.117638
 
+### A Hybrid Framework for Natural Language Querying of IFC Models with Relational and Graph Representations
+
+- Source: arxiv
+- Published: 2026-05-13
+- Type: preprint
+- Score: 10
+- Tags: bim, openbim
+- Summary: Building Information Modeling (BIM) is widely used in the Architecture, Engineering, and Construction (AEC) industry, but the complexity of Industry Foundation Classes (IFC) limits accessibility for non-expert users. To address this, we introduce IfcLLM, a hybrid framework for natural language interaction with IFC-based BIM models.
+- Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
+- Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.13236v1
+
 ## BIM / Digital Construction
+
+### BIM Information Extraction Through LLM-based Adaptive Exploration
+
+- Source: arxiv
+- Published: 2026-05-03
+- Type: preprint
+- Score: 9
+- Tags: bim, openbim
+- Summary: BIM models provide structured representations of building geometry, semantics, and topology, yet extracting specific information from them remains remarkably difficult. Current approaches translate natural language into structured queries by assuming a fixed data organization (static approach), which BIM heterogeneity eventually invalidates.
+- Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
+- Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.01698v1
+
+### BIMStruct3D: A Fully Automated Hybrid Learning Scan-to-BIM Pipeline with Integrated Topology Refinement
+
+- Source: arxiv
+- Published: 2026-04-27
+- Type: preprint
+- Score: 9
+- Tags: bim, openbim
+- Summary: Automatic generation of Building Information Models (BIM) from building scans is a key challenge in architecture and construction. We present a modular pipeline for generating IFC-compliant BIM from 3D point clouds.
+- Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
+- Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
+- URL: http://arxiv.org/abs/2604.24311v2
 
 ### ANALISIS PERBANDINGAN WAKTU DALAM ESTIMASI BIAYA PEKERJAAN STRUKTUR PROYEK GEDUNG PRESISI 5 POLRI: METODE KONVENSIONAL VS BIM 5D
 
@@ -70,6 +106,18 @@ Date: 2026-05-17
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
 - Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
 - URL: https://doi.org/10.62335/sinergi.v2i7.1506
+
+### Learning-Based Hierarchical Scene Graph Matching for Robot Localization Leveraging Prior Maps
+
+- Source: arxiv
+- Published: 2026-04-30
+- Type: preprint
+- Score: 6
+- Tags: bim, digital_twin
+- Summary: Accurate localization is a fundamental requirement for autonomous robots operating in indoor environments. Scene graphs encode the spatial structure of an environment as a hierarchy of semantic entities and their relationships, and can be constructed both online from robot sensor data and offline from architectural priors such as Building Information Models (BIM).
+- Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
+- Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨. 디지털 트윈 모니터링 박사 연구와 직접 연결됨.
+- URL: http://arxiv.org/abs/2604.27821v1
 
 ### Digital Enablers for Circular Construction: A Systematic Review of RFID and BIM Integration
 
