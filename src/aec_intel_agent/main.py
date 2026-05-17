@@ -53,7 +53,11 @@ def build_briefing(
     min_score = int(scoring_rules.get("minimum_score", 1))
     filtered = [item for item in scored if item.score >= min_score]
 
-    return write_markdown_briefing(filtered, output_dir=output_dir)
+    return write_markdown_briefing(
+        filtered,
+        output_dir=output_dir,
+        total_collected=len(collected),
+    )
 
 
 def main() -> None:

@@ -7,6 +7,7 @@ from datetime import datetime
 
 from aec_intel_agent.briefing import (
     _build_summary,
+    _relevance_to_seongho,
     _why_it_matters,
     generate_markdown_briefing,
 )
@@ -27,127 +28,160 @@ def _section_text(md: str, header: str) -> str:
     return after[: next_h2.start()] if next_h2 else after
 
 
-def test_briefing_contains_korean_section_headers():
-    items = [_item(score=12, topics=["bim"])]
-    md = generate_markdown_briefing(items, generated_at=datetime(2026, 5, 16, 9, 0))
-
-    assert "오늘의 핵심" in md
-    assert "강구조 & 모니터링" in md
-    assert "LCA · 임베디드 카본" in md
-    assert "BIM · 디지털 트윈 · AI 자동화" in md
-    assert "박사 연구용 참고" in md
-    assert "약한 신호" in md
+# --- Top-level structure -----------------------------------------------------
 
 
-def test_must_read_threshold():
-    high = _item(title="High Score", score=15, topics=["bim"])
-    low = _item(title="Low Score", score=3, topics=["bim"])
-    md = generate_markdown_briefing([high, low])
-
-    must_read = _section_text(md, "🌟 오늘의 핵심")
-    assert "High Score" in must_read
-    assert "Low Score" not in must_read
+def test_briefing_has_title_and_date_header():
+    md = generate_markdown_briefing([], generated_at=datetime(2026, 5, 16, 9, 0))
+    assert "# Daily AEC / BIM / Steel Intelligence Briefing" in md
+    assert "Date: 2026-05-16" in md
 
 
-def test_bim_topic_goes_to_bim_section():
+def test_briefing_contains_all_required_section_headers():
+    md = generate_markdown_briefing([])
+    for header in [
+        "Executive Summary",
+        "Must Read",
+        "BIM / Digital Construction",
+        "Steel Construction",
+        "LCA / Sustainability",
+        "Papers to Save",
+        "Weak Signals",
+        "Excluded / Low Relevance Summary",
+    ]:
+        assert f"## {header}" in md, f"missing section: {header}"
+
+
+def test_executive_summary_lists_counts_themes_and_strength():
+    items = [
+        _item(title="A", score=6, topics=["bim"]),
+        _item(title="B", score=6, topics=["structural_steel"]),
+    ]
+    md = generate_markdown_briefing(items, total_collected=10)
+    es = _section_text(md, "Executive Summary")
+
+    assert "수집 항목 수: 10건" in es
+    assert "포함 항목 수: 2건" in es
+    assert "주요 주제:" in es
+    assert "오늘 결과 평가:" in es
+
+
+def test_excluded_summary_shows_count_and_reason():
+    items = [_item(score=6, topics=["bim"])]
+    md = generate_markdown_briefing(items, total_collected=7)
+    es = _section_text(md, "Excluded / Low Relevance Summary")
+    assert "제외 항목: 6건" in es
+    assert "사유:" in es
+
+
+def test_empty_items_shows_no_items_message():
+    md = generate_markdown_briefing([])
+    assert "해당 항목 없음." in md
+
+
+# --- Routing ----------------------------------------------------------------
+
+
+def test_must_read_uses_threshold_of_10():
+    high = _item(title="High", score=10, topics=["bim"])
+    just_below = _item(title="Below", score=9, topics=["bim"])
+    md = generate_markdown_briefing([high, just_below])
+
+    must_read = _section_text(md, "Must Read")
+    assert "High" in must_read
+    assert "Below" not in must_read
+
+
+def test_steel_topic_routes_to_steel_section():
+    item = _item(title="Steel paper", score=6, topics=["structural_steel"])
+    md = generate_markdown_briefing([item])
+    assert "Steel paper" in _section_text(md, "Steel Construction")
+
+
+def test_bim_topic_routes_to_bim_section():
     item = _item(title="IFC paper", score=6, topics=["openbim"])
     md = generate_markdown_briefing([item])
-
-    bim = _section_text(md, "🏛️ BIM · 디지털 트윈 · AI 자동화")
-    assert "IFC paper" in bim
+    assert "IFC paper" in _section_text(md, "BIM / Digital Construction")
 
 
-def test_steel_topic_goes_to_steel_section():
-    item = _item(title="Steel frame study", score=6, topics=["structural_steel"])
+def test_lca_topic_routes_to_lca_section():
+    item = _item(title="LCA paper", score=6, topics=["embodied_carbon"])
     md = generate_markdown_briefing([item])
-
-    steel = _section_text(md, "🏗️ 강구조 & 모니터링")
-    assert "Steel frame study" in steel
+    assert "LCA paper" in _section_text(md, "LCA / Sustainability")
 
 
-def test_lca_topic_goes_to_lca_section():
-    item = _item(title="LCA of concrete vs steel", score=6, topics=["embodied_carbon"])
+def test_steel_priority_beats_bim_when_both_topics_present():
+    item = _item(title="Steel+BIM paper", score=6, topics=["structural_steel", "bim"])
     md = generate_markdown_briefing([item])
+    assert "Steel+BIM paper" in _section_text(md, "Steel Construction")
+    assert "Steel+BIM paper" not in _section_text(md, "BIM / Digital Construction")
 
-    lca = _section_text(md, "♻️ LCA · 임베디드 카본")
-    assert "LCA of concrete vs steel" in lca
 
-
-def test_digital_twin_with_steel_mention_routes_to_steel_section():
-    item = _item(
-        title="Digital twin for steel bridge monitoring",
-        score=6,
-        topics=["digital_twin"],
-        summary="A steel bridge digital twin pilot.",
-    )
+def test_unmatched_mid_score_item_goes_to_papers_to_save():
+    item = _item(title="Niche", score=6, topics=[])
     md = generate_markdown_briefing([item])
-
-    steel = _section_text(md, "🏗️ 강구조 & 모니터링")
-    assert "steel bridge monitoring" in steel
+    assert "Niche" in _section_text(md, "Papers to Save")
 
 
-def test_phd_section_collects_unmatched_mid_score_items():
-    item = _item(title="Niche topic", score=6, topics=[])
+def test_unmatched_low_score_item_goes_to_weak_signals():
+    item = _item(title="Edge", score=2, topics=[])
     md = generate_markdown_briefing([item])
-
-    phd = _section_text(md, "📚 박사 연구용 참고")
-    assert "Niche topic" in phd
+    assert "Edge" in _section_text(md, "Weak Signals")
 
 
 def test_each_item_appears_in_exactly_one_section():
     items = [
-        _item(title="Paper A", score=12, topics=["bim"], summary="alpha."),
+        _item(title="Paper A", score=10, topics=["bim"], summary="alpha."),
         _item(title="Paper B", score=7, topics=["structural_steel"], summary="beta."),
         _item(title="Paper C", score=3, topics=["bim"], summary="gamma."),
     ]
     md = generate_markdown_briefing(items)
 
-    # Each title appears exactly once as a numbered card heading.
-    assert len(re.findall(r"### \d+\. Paper A", md)) == 1
-    assert len(re.findall(r"### \d+\. Paper B", md)) == 1
-    assert len(re.findall(r"### \d+\. Paper C", md)) == 1
+    assert len(re.findall(r"^### Paper A$", md, re.MULTILINE)) == 1
+    assert len(re.findall(r"^### Paper B$", md, re.MULTILINE)) == 1
+    assert len(re.findall(r"^### Paper C$", md, re.MULTILINE)) == 1
 
 
-def test_url_rendered_as_markdown_link():
+# --- Item format ------------------------------------------------------------
+
+
+def test_item_block_renders_all_required_fields():
     item = _item(
-        title="Linked Paper",
-        url="https://example.com/paper",
-        score=5,
-        topics=["bim"],
+        title="Card",
+        url="https://example.com/x",
+        score=12,
+        topics=["structural_steel"],
+        authors=["Alice"],
+        doi="10.1/x",
+        summary="A steel paper.",
+        item_type="paper",
     )
     md = generate_markdown_briefing([item])
 
-    assert "[Linked Paper](https://example.com/paper)" in md
+    for field in [
+        "- Source:",
+        "- Published:",
+        "- Type:",
+        "- Score:",
+        "- Tags:",
+        "- Summary:",
+        "- Why it matters:",
+        "- Relevance to Seongho:",
+        "- URL:",
+    ]:
+        assert field in md, f"missing field: {field}"
 
 
-def test_empty_items_shows_no_items_message():
-    md = generate_markdown_briefing([])
-    assert "해당 항목 없음" in md
-    assert "0건" in md
+def test_url_rendered_on_its_own_line():
+    item = _item(title="X", url="https://example.com/paper", score=5, topics=["bim"])
+    md = generate_markdown_briefing([item])
+    assert "- URL: https://example.com/paper" in md
 
 
-def test_why_it_matters_steel_phrase():
-    item = _item(topics=["structural_steel"])
-    assert "강구조" in _why_it_matters(item)
+# --- Summary ----------------------------------------------------------------
 
 
-def test_why_it_matters_lca_phrase():
-    item = _item(topics=["embodied_carbon"])
-    assert "LCA WG" in _why_it_matters(item)
-
-
-def test_why_it_matters_default_for_no_topics():
-    item = _item(topics=[])
-    assert _why_it_matters(item) == "박사 연구 참고 자료"
-
-
-def test_why_it_matters_caps_at_two_phrases():
-    item = _item(topics=["structural_steel", "embodied_carbon", "digital_twin", "bim"])
-    result = _why_it_matters(item)
-    assert result.count("·") <= 1  # at most 2 phrases joined by " · "
-
-
-def test_deterministic_summary_picks_sentences_with_keywords():
+def test_summary_picks_sentences_with_matched_keywords():
     item = _item(
         title="Some Paper",
         summary=(
@@ -161,16 +195,23 @@ def test_deterministic_summary_picks_sentences_with_keywords():
     summary = _build_summary(item)
     assert "BIM-based pipeline" in summary
     assert "openBIM workflows" in summary
-    # The unrelated sentence should not appear.
     assert "cats" not in summary
 
 
-def test_deterministic_summary_falls_back_to_title_when_empty():
-    item = _item(title="Fallback Title", summary="")
-    assert _build_summary(item) == "Fallback Title"
+def test_summary_falls_back_to_korean_message_when_abstract_missing():
+    item = _item(title="No abstract", summary="")
+    assert (
+        _build_summary(item)
+        == "초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함."
+    )
 
 
-def test_deterministic_summary_preserves_original_order():
+def test_summary_falls_back_to_korean_message_when_summary_is_whitespace():
+    item = _item(title="Whitespace", summary="   \n  ")
+    assert "초록 또는 상세 설명이 부족하여" in _build_summary(item)
+
+
+def test_summary_preserves_original_sentence_order():
     item = _item(
         summary="Sentence A about BIM. Sentence B about BIM. Sentence C unrelated.",
         metadata={"matched_keywords": ["BIM"]},
@@ -179,41 +220,58 @@ def test_deterministic_summary_preserves_original_order():
     assert summary.index("Sentence A") < summary.index("Sentence B")
 
 
-def test_item_card_renders_metadata_table_and_why():
-    item = _item(
-        title="Card Test",
-        url="https://example.com/x",
-        score=12,
-        topics=["structural_steel"],
-        authors=["Alice", "Bob"],
-        doi="10.1/x",
-        summary="A steel paper.",
-    )
-    md = generate_markdown_briefing([item])
-
-    assert "| 항목 | 내용 |" in md
-    assert "| 출처 | test |" in md
-    assert "| 발행일 |" in md
-    assert "| 점수 | 12 |" in md
-    assert "| 태그 | structural_steel |" in md
-    assert "**📌 왜 중요한가:**" in md
-    assert "강구조" in md
-    assert "**요약:**" in md
+# --- Why it matters & Relevance to Seongho ---------------------------------
 
 
-def test_overview_line_present():
-    items = [
-        _item(title="A", score=12, topics=["bim"]),
-        _item(title="B", score=6, topics=["structural_steel"]),
-        _item(title="C", score=6, topics=["embodied_carbon"]),
-    ]
+def test_why_it_matters_steel_phrase():
+    assert "constructsteel" in _why_it_matters(_item(topics=["structural_steel"]))
+
+
+def test_why_it_matters_lca_phrase():
+    assert "LCA WG" in _why_it_matters(_item(topics=["embodied_carbon"]))
+
+
+def test_why_it_matters_bim_phrase():
+    assert "BIM-Digital Twin" in _why_it_matters(_item(topics=["bim"]))
+
+
+def test_why_it_matters_ai_phrase():
+    assert "건설 자동화" in _why_it_matters(_item(topics=["ai_in_construction"]))
+
+
+def test_why_it_matters_default_for_no_topics():
+    result = _why_it_matters(_item(topics=[]))
+    assert result and "현재 주요 토픽" in result
+
+
+def test_why_it_matters_caps_at_two_phrases():
+    item = _item(topics=["structural_steel", "embodied_carbon", "bim", "ai_in_construction"])
+    result = _why_it_matters(item)
+    # At most 2 phrases joined, each ending with `.`.
+    assert result.count(".") <= 2
+
+
+def test_relevance_to_seongho_steel():
+    assert "constructsteel" in _relevance_to_seongho(_item(topics=["structural_steel"]))
+
+
+def test_relevance_to_seongho_lca():
+    assert "LCA WG" in _relevance_to_seongho(_item(topics=["embodied_carbon"]))
+
+
+def test_relevance_to_seongho_default():
+    assert _relevance_to_seongho(_item(topics=[])).startswith("현재 우선 순위는 낮음")
+
+
+# --- Strength label ---------------------------------------------------------
+
+
+def test_strength_label_strong_when_many_items():
+    items = [_item(score=6, topics=["bim"]) for _ in range(20)]
     md = generate_markdown_briefing(items)
-    assert "개요:" in md
-    assert "총 3건" in md
-    assert "강구조 1건" in md
-    assert "LCA 1건" in md
+    assert "강함 (Strong)" in _section_text(md, "Executive Summary")
 
 
-def test_footer_present():
-    md = generate_markdown_briefing([])
-    assert "브리핑 생성: aec-intelligence-agent" in md
+def test_strength_label_weak_when_few_items():
+    md = generate_markdown_briefing([_item(score=6, topics=["bim"])])
+    assert "약함 (Weak)" in _section_text(md, "Executive Summary")

@@ -1,8 +1,9 @@
-"""Korean Markdown briefing generation aligned with user workflows."""
+"""Markdown briefing generator for the AEC intelligence pipeline."""
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -22,49 +23,94 @@ _BIM_TOPICS = {
     "digital_twin",
     "ai_in_construction",
 }
-_STEEL_KEYWORDS_IN_TEXT = ("steel", "강구조", "강재", "철골")
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_MISSING_SUMMARY = (
+    "초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함."
+)
+_DEFAULT_WHY = "현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토."
+_DEFAULT_RELEVANCE = "현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관."
 
 
-def _why_it_matters(item: StandardItem) -> str:
+def _route_item(item: StandardItem) -> str:
+    """Route item into one section. Priority: Must Read → Steel → BIM → LCA → Save → Weak."""
+    if item.score >= MUST_READ_THRESHOLD:
+        return "must_read"
     topics = set(item.topics or [])
-    phrases: list[str] = []
-
     if topics & _STEEL_TOPICS:
-        phrases.append("강구조 / constructsteel 작업 직결")
+        return "steel"
+    if topics & _BIM_TOPICS:
+        return "bim"
     if topics & _LCA_TOPICS:
-        phrases.append("LCA WG 관련")
-    if "digital_twin" in topics:
-        phrases.append("디지털 트윈 · 모니터링 연구")
-    if topics & {"bim", "openbim"}:
-        phrases.append("BIM · openBIM 연구 자료")
-    if "ai_in_construction" in topics:
-        phrases.append("AI 건설 자동화 연구")
-    if topics & {"digital_architecture", "construction_technology"}:
-        phrases.append("디지털 건설 기술 참고")
+        return "lca"
+    if item.score >= SAVE_THRESHOLD:
+        return "save"
+    return "weak"
 
-    if not phrases:
-        return "박사 연구 참고 자료"
 
-    # Deduplicate while preserving order, then cap at 2 phrases.
+def _dedup_keep_order(phrases: list[str]) -> list[str]:
     seen: set[str] = set()
-    unique: list[str] = []
+    out: list[str] = []
     for p in phrases:
         if p not in seen:
             seen.add(p)
-            unique.append(p)
-    return " · ".join(unique[:2])
+            out.append(p)
+    return out
+
+
+def _why_it_matters(item: StandardItem) -> str:
+    """Topic-driven Korean rationale tying the item to user workflows."""
+    topics = set(item.topics or [])
+    phrases: list[str] = []
+    if topics & ({"bim", "openbim", "digital_twin", "digital_architecture", "construction_technology"}):
+        phrases.append(
+            "BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음."
+        )
+    if topics & _STEEL_TOPICS:
+        phrases.append(
+            "constructsteel의 강구조 기술 동향 및 프로젝트 발굴에 참고 가능함."
+        )
+    if topics & _LCA_TOPICS:
+        phrases.append(
+            "LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함."
+        )
+    if "ai_in_construction" in topics:
+        phrases.append(
+            "건설 자동화 및 설계 지원 에이전트 개발 방향과 연결 가능함."
+        )
+    if not phrases:
+        return _DEFAULT_WHY
+    return " ".join(_dedup_keep_order(phrases)[:2])
+
+
+def _relevance_to_seongho(item: StandardItem) -> str:
+    """Personalized phrasing tying topics to Seongho's concrete workstreams."""
+    topics = set(item.topics or [])
+    phrases: list[str] = []
+    if topics & _STEEL_TOPICS:
+        phrases.append("constructsteel 강구조 모니터링 업무와 직접 연결됨.")
+    if topics & _LCA_TOPICS:
+        phrases.append("LCA WG 작업 및 박사 연구와 직접 연결됨.")
+    if topics & {"bim", "openbim"}:
+        phrases.append("BIM 박사 연구의 핵심 주제와 직접 연결됨.")
+    if "digital_twin" in topics:
+        phrases.append("디지털 트윈 모니터링 박사 연구와 직접 연결됨.")
+    if "ai_in_construction" in topics:
+        phrases.append("건설 자동화 에이전트 박사 연구 방향과 일치함.")
+    if not phrases:
+        return _DEFAULT_RELEVANCE
+    return " ".join(_dedup_keep_order(phrases)[:2])
 
 
 def _build_summary(item: StandardItem) -> str:
+    """Deterministic 1–2 sentence summary from abstract; Korean fallback if missing."""
     text = (item.summary or "").strip()
     if not text:
-        return item.title.strip()
+        return _MISSING_SUMMARY
 
     sentences = [s.strip() for s in _SENTENCE_SPLIT.split(text) if s.strip()]
     if not sentences:
-        return item.title.strip()
+        return _MISSING_SUMMARY
 
     matched = [
         kw.lower()
@@ -78,9 +124,7 @@ def _build_summary(item: StandardItem) -> str:
         hits = sum(1 for kw in matched if kw in lower)
         scored.append((hits, idx, sentence))
 
-    # Pick top 2 by hit count, tie-break by earlier position.
     top = sorted(scored, key=lambda t: (-t[0], t[1]))[:2]
-    # Render in original order.
     chosen = [s for _, _, s in sorted(top, key=lambda t: t[1])]
 
     summary = " ".join(chosen)
@@ -89,158 +133,138 @@ def _build_summary(item: StandardItem) -> str:
     return summary
 
 
-def _route_item(item: StandardItem) -> str:
-    """Return the section key this item belongs to."""
-    if item.score >= MUST_READ_THRESHOLD:
-        return "must_read"
-
-    topics = set(item.topics or [])
-
-    if topics & _STEEL_TOPICS:
-        return "steel"
-
-    if "digital_twin" in topics:
-        text = f"{item.title} {item.summary}".lower()
-        if any(kw in text for kw in _STEEL_KEYWORDS_IN_TEXT):
-            return "steel"
-
-    if topics & _LCA_TOPICS:
-        return "lca"
-
-    if topics & _BIM_TOPICS:
-        return "bim"
-
-    if item.score >= SAVE_THRESHOLD:
-        return "phd"
-
-    return "weak"
+def _strength_label(included_count: int) -> str:
+    if included_count >= 15:
+        return "강함 (Strong)"
+    if included_count >= 5:
+        return "보통 (Moderate)"
+    return "약함 (Weak)"
 
 
-def _item_card(index: int, item: StandardItem) -> str:
-    title = item.title.strip() or "(제목 없음)"
-    link = f"[{title}]({item.url})" if item.url else title
+def _main_themes(items: list[StandardItem]) -> str:
+    counter: Counter[str] = Counter()
+    for item in items:
+        for topic in item.topics or []:
+            counter[topic] += 1
+    if not counter:
+        return "감지된 주요 주제 없음."
+    top = [name for name, _ in counter.most_common(3)]
+    return ", ".join(top)
 
-    rows = [
-        ("출처", item.source or "-"),
-        ("발행일", item.display_date),
-        ("점수", str(item.score)),
-        ("태그", ", ".join(item.topics) if item.topics else "-"),
-        ("저자", ", ".join(item.authors[:3]) if item.authors else "-"),
-        ("DOI", item.doi or "-"),
-    ]
-    table_lines = ["| 항목 | 내용 |", "|------|------|"]
-    for label, value in rows:
-        table_lines.append(f"| {label} | {value} |")
+
+def _item_block(item: StandardItem) -> str:
+    title = (item.title or "").strip() or "(제목 없음)"
+    tags = ", ".join(item.topics) if item.topics else "(없음)"
+    url = item.url or "(없음)"
+    source = item.source or "-"
+    source_type = item.item_type or "-"
+    published = item.display_date
 
     summary = _build_summary(item)
     why = _why_it_matters(item)
+    rel = _relevance_to_seongho(item)
 
-    lines = [
-        f"### {index}. {link}",
-        "",
-        f"**📌 왜 중요한가:** {why}",
-        "",
-        *table_lines,
-        "",
-        f"**요약:** {summary}",
-        "",
-    ]
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            f"### {title}",
+            "",
+            f"- Source: {source}",
+            f"- Published: {published}",
+            f"- Type: {source_type}",
+            f"- Score: {item.score}",
+            f"- Tags: {tags}",
+            f"- Summary: {summary}",
+            f"- Why it matters: {why}",
+            f"- Relevance to Seongho: {rel}",
+            f"- URL: {url}",
+            "",
+        ]
+    )
 
 
-def _render_section(title: str, subtitle: str, items: list[StandardItem]) -> str:
-    header = f"## {title}\n\n> {subtitle}\n\n"
+def _section(header: str, items: list[StandardItem]) -> str:
+    parts = [f"## {header}", ""]
     if not items:
-        return header + "*(해당 항목 없음)*\n\n"
-    cards = [_item_card(i + 1, item) for i, item in enumerate(items)]
-    return header + "\n".join(cards)
+        parts.append("해당 항목 없음.")
+        parts.append("")
+        return "\n".join(parts)
+    for item in items:
+        parts.append(_item_block(item))
+    return "\n".join(parts)
 
 
 def generate_markdown_briefing(
     items: list[StandardItem],
     generated_at: datetime | None = None,
+    total_collected: int | None = None,
 ) -> str:
     timestamp = generated_at or datetime.now()
     date_str = timestamp.strftime("%Y-%m-%d")
-    time_str = timestamp.strftime("%H:%M")
+
+    if total_collected is None:
+        total_collected = len(items)
+    excluded = max(total_collected - len(items), 0)
 
     buckets: dict[str, list[StandardItem]] = {
         "must_read": [],
         "steel": [],
-        "lca": [],
         "bim": [],
-        "phd": [],
+        "lca": [],
+        "save": [],
         "weak": [],
     }
-
     for item in items:
         buckets[_route_item(item)].append(item)
 
-    overview = (
-        f"총 {len(items)}건 · "
-        f"핵심 {len(buckets['must_read'])}건 · "
-        f"강구조 {len(buckets['steel'])}건 · "
-        f"LCA {len(buckets['lca'])}건 · "
-        f"BIM {len(buckets['bim'])}건"
+    themes = _main_themes(items)
+    strength = _strength_label(len(items))
+
+    header = (
+        "# Daily AEC / BIM / Steel Intelligence Briefing\n"
+        f"Date: {date_str}\n\n"
     )
 
-    header = "\n".join(
+    exec_summary = "\n".join(
         [
-            "# AEC 인텔리전스 브리핑",
+            "## Executive Summary",
             "",
-            f"**생성일:** {date_str} {time_str}  ",
-            f"**수집 논문 수:** {len(items)}건  ",
-            f"**개요:** {overview}",
-            "",
-            "---",
+            f"- 수집 항목 수: {total_collected}건",
+            f"- 포함 항목 수: {len(items)}건",
+            f"- 주요 주제: {themes}",
+            f"- 오늘 결과 평가: {strength}",
             "",
         ]
     )
 
     body = "\n".join(
         [
-            _render_section(
-                "🌟 오늘의 핵심",
-                "점수가 높아 우선 읽어볼 논문",
-                buckets["must_read"],
-            ),
-            _render_section(
-                "🏗️ 강구조 & 모니터링",
-                "constructsteel 작업 및 강구조 모니터링 관련",
-                buckets["steel"],
-            ),
-            _render_section(
-                "♻️ LCA · 임베디드 카본",
-                "LCA WG 작업 및 탄소 평가 관련",
-                buckets["lca"],
-            ),
-            _render_section(
-                "🏛️ BIM · 디지털 트윈 · AI 자동화",
-                "BIM / 디지털 트윈 / AI 자동화 연구 자료",
-                buckets["bim"],
-            ),
-            _render_section(
-                "📚 박사 연구용 참고",
-                "점수 5 이상이나 위 주제에 속하지 않는 자료",
-                buckets["phd"],
-            ),
-            _render_section(
-                "🔍 약한 신호",
-                "낮은 점수 / 변두리 신호 — 참고용",
-                buckets["weak"],
-            ),
+            _section("Must Read", buckets["must_read"]),
+            _section("BIM / Digital Construction", buckets["bim"]),
+            _section("Steel Construction", buckets["steel"]),
+            _section("LCA / Sustainability", buckets["lca"]),
+            _section("Papers to Save", buckets["save"]),
+            _section("Weak Signals", buckets["weak"]),
         ]
     )
 
-    footer = "\n---\n\n_브리핑 생성: aec-intelligence-agent_\n"
+    excluded_section = "\n".join(
+        [
+            "## Excluded / Low Relevance Summary",
+            "",
+            f"- 수집 대비 제외 항목: {excluded}건",
+            "- 사유: 최소 점수 미달 또는 키워드 매칭 부족.",
+            "",
+        ]
+    )
 
-    return header + body + footer
+    return header + exec_summary + body + excluded_section
 
 
 def write_markdown_briefing(
     items: list[StandardItem],
     output_dir: Path | str = "outputs",
     filename: str | None = None,
+    total_collected: int | None = None,
 ) -> Path:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -248,7 +272,9 @@ def write_markdown_briefing(
     filename = filename or f"{now.strftime('%Y-%m-%d')}_daily_briefing.md"
     briefing_path = output_path / filename
     briefing_path.write_text(
-        generate_markdown_briefing(items, generated_at=now),
+        generate_markdown_briefing(
+            items, generated_at=now, total_collected=total_collected
+        ),
         encoding="utf-8",
     )
     return briefing_path
