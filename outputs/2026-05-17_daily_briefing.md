@@ -3,9 +3,9 @@ Date: 2026-05-17
 
 ## Executive Summary
 
-- 수집 항목 수: 44건
-- 포함 항목 수: 17건
-- 주요 주제: bim, openbim, embodied_carbon
+- 수집 항목 수: 58건
+- 포함 항목 수: 21건
+- 주요 주제: bim, embodied_carbon, openbim
 - 오늘 결과 평가: 강함 (Strong)
 ## Must Read
 
@@ -155,6 +155,30 @@ Date: 2026-05-17
 - Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
 - URL: https://doi.org/10.1061/jaeied.aeeng-2206
 
+### Croissant Baker: Metadata Generation for Discoverable, Governable, and Reusable ML Datasets
+
+- Source: arxiv
+- Published: 2026-05-14
+- Type: preprint
+- Score: 3
+- Tags: ai_in_construction
+- Summary: Croissant has emerged as the metadata standard for machine learning datasets, providing a structured, JSON-LD-based format that makes dataset discovery, automated ingestion, and reproducible analysis machine-checkable across ML platforms. Adoption has accelerated, and NeurIPS now requires Croissant metadata in every submission to its dataset tracks.
+- Why it matters: 건설 자동화 및 설계 지원 에이전트 개발 방향과 연결 가능함.
+- Relevance to Seongho: 건설 자동화 에이전트 박사 연구 방향과 일치함.
+- URL: http://arxiv.org/abs/2605.15079v1
+
+### Profiles of AI Dependency: A Latent Class Analysis of Filipino Students' Academic Competencies
+
+- Source: arxiv
+- Published: 2026-04-30
+- Type: preprint
+- Score: 3
+- Tags: ai_in_construction
+- Summary: The increasing dependency among Filipino college students on artificial intelligence (AI) poses concerns about the potential decline of fundamental academic competencies. This study examines the extent of AI dependency and its perceived effects on students' critical thinking, writing skills, learning independence, research skills, and academic engagement.
+- Why it matters: 건설 자동화 및 설계 지원 에이전트 개발 방향과 연결 가능함.
+- Relevance to Seongho: 건설 자동화 에이전트 박사 연구 방향과 일치함.
+- URL: http://arxiv.org/abs/2604.27349v1
+
 ## Steel Construction
 
 해당 항목 없음.
@@ -172,6 +196,18 @@ Date: 2026-05-17
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
 - Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
 - URL: https://doi.org/10.1016/j.clrc.2026.100432
+
+### Inferring Phylogenetic Networks from Required and Forbidden LCA-Constraints
+
+- Source: arxiv
+- Published: 2026-05-05
+- Type: preprint
+- Score: 6
+- Tags: embodied_carbon
+- Summary: In this paper, we study network inference from least common ancestor (LCA) constraints, which specify relative ancestral relationships between pairs of taxa. While previous work has characterized when a set of required LCA constraints can be realized by a phylogenetic network, practical applications may also involve constraints that must be explicitly avoide
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.03827v2
 
 ### A review of system approach towards sustainable palm biodiesel: A multi-framework integration of TEA, LCA, and carbon accounting within environment-food-energy-water (EFEW)
 
@@ -221,6 +257,18 @@ Date: 2026-05-17
 - Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
 - URL: https://doi.org/10.1016/j.susmat.2026.e01979
 
+### Safety by Invariance, Liveness through Refinement: Heterogeneous Contract Framework for Co-Design of Layered Control
+
+- Source: arxiv
+- Published: 2026-05-05
+- Type: preprint
+- Score: 3
+- Tags: embodied_carbon
+- Summary: Real-world control systems must achieve long-horizon objectives (liveness) while respecting continuous-time safety constraints, a combination that motivates hierarchical layered control architectures (LCAs). Existing LCA research, however, lacks (i) a uniform specification language across discrete planning and continuous execution, (ii) formal guarantees that specifications are preserved when int…
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.04222v1
+
 ## Papers to Save
 
 해당 항목 없음.
@@ -230,5 +278,5 @@ Date: 2026-05-17
 해당 항목 없음.
 ## Excluded / Low Relevance Summary
 
-- 수집 대비 제외 항목: 27건
+- 수집 대비 제외 항목: 37건
 - 사유: 최소 점수 미달 또는 키워드 매칭 부족.
