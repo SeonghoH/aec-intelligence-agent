@@ -26,6 +26,6 @@ aec-intel-agent = "aec_intel_agent.main:main"
 packages = ["src/aec_intel_agent"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
 

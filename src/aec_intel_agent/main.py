@@ -10,6 +10,7 @@ from aec_intel_agent.collectors.arxiv import ArxivCollector
 from aec_intel_agent.collectors.crossref import CrossrefCollector
 from aec_intel_agent.config_loader import load_config
 from aec_intel_agent.deduplication import deduplicate_items
+from aec_intel_agent.notion_client import upload_to_notion
 from aec_intel_agent.scoring import score_items
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -53,11 +54,19 @@ def build_briefing(
     min_score = int(scoring_rules.get("minimum_score", 1))
     filtered = [item for item in scored if item.score >= min_score]
 
-    return write_markdown_briefing(
+    output_path = write_markdown_briefing(
         filtered,
         output_dir=output_dir,
         total_collected=len(collected),
     )
+
+    upload_to_notion(
+        briefing_path=output_path,
+        items=filtered,
+        total_collected=len(collected),
+    )
+
+    return output_path
 
 
 def main() -> None:

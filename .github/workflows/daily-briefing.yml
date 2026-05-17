@@ -32,6 +32,12 @@ jobs:
         run: python -m pytest tests
 
       - name: Generate daily briefing
+        env:
+          # Optional. If any of these is empty, the Notion upload step is
+          # skipped silently and only the Markdown briefing is produced.
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DAILY_DB_ID: ${{ secrets.NOTION_DAILY_DB_ID }}
+          NOTION_RESEARCH_DB_ID: ${{ secrets.NOTION_RESEARCH_DB_ID }}
         run: python -m aec_intel_agent.main
 
       - name: Upload briefing artifact

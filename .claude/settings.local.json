@@ -4,7 +4,10 @@
       "Bash(pip install *)",
       "Bash(python3 -m pip install -e \".[dev]\" -q)",
       "Bash(PYTHONPATH=src python3 -m pytest -v)",
-      "Bash(python3 -m pytest tests)"
+      "Bash(python3 -m pytest tests)",
+      "Bash(python3 -m pytest tests -v)",
+      "Bash(unset NOTION_TOKEN NOTION_DAILY_DB_ID NOTION_RESEARCH_DB_ID)",
+      "Bash(python3 -m aec_intel_agent.main)"
     ]
   }
 }
