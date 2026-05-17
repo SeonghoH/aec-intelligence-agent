@@ -19,6 +19,8 @@ venv/
 data/raw/*
 data/processed/*
 outputs/*
+# Allow generated Markdown briefings to be tracked.
+!outputs/*.md
 
 # OS/editor
 .DS_Store

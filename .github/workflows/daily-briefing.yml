@@ -1,0 +1,58 @@
+name: Daily AEC Intelligence Briefing
+
+on:
+  schedule:
+    # 08:00 Asia/Seoul == 23:00 UTC (previous day)
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest tests
+
+      - name: Generate daily briefing
+        run: python -m aec_intel_agent.main
+
+      - name: Upload briefing artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-briefing-${{ github.run_id }}
+          path: outputs/*.md
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit generated briefing
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git add outputs/*.md || true
+          if git diff --cached --quiet; then
+            echo "No briefing changes to commit."
+          else
+            git commit -m "chore: add daily briefing $(date -u +%Y-%m-%d)"
+            git push
+          fi
