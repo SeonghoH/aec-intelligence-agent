@@ -3,7 +3,7 @@ Date: 2026-05-17
 
 ## Executive Summary
 
-- 수집 항목 수: 36건
+- 수집 항목 수: 40건
 - 포함 항목 수: 13건
 - 주요 주제: bim, embodied_carbon, openbim
 - 오늘 결과 평가: 보통 (Moderate)
@@ -182,5 +182,5 @@ Date: 2026-05-17
 해당 항목 없음.
 ## Excluded / Low Relevance Summary
 
-- 수집 대비 제외 항목: 23건
+- 수집 대비 제외 항목: 27건
 - 사유: 최소 점수 미달 또는 키워드 매칭 부족.
