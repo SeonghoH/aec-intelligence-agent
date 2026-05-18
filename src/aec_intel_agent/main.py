@@ -40,6 +40,35 @@ DEFAULT_FULL_TEXT_DIR = PROJECT_ROOT / "data" / "full_text"
 DEFAULT_SEEN_ITEMS_PATH = PROJECT_ROOT / DEFAULT_SEEN_PATH
 
 
+def _log_score_distribution(scored_items: list) -> None:
+    """Log a simple histogram and the top 10 items by score."""
+    total = len(scored_items)
+    buckets = {"≥80": 0, "70-79": 0, "30-69": 0, "<30": 0}
+    for item in scored_items:
+        s = item.score
+        if s >= 80:
+            buckets["≥80"] += 1
+        elif s >= 70:
+            buckets["70-79"] += 1
+        elif s >= 30:
+            buckets["30-69"] += 1
+        else:
+            buckets["<30"] += 1
+
+    logger.info(
+        "Score distribution (total=%d): ≥80=%d, 70-79=%d, 30-69=%d, <30=%d",
+        total, buckets["≥80"], buckets["70-79"], buckets["30-69"], buckets["<30"],
+    )
+
+    top = sorted(scored_items, key=lambda i: i.score, reverse=True)[:10]
+    if top:
+        logger.info("Top %d items by score:", len(top))
+        for idx, item in enumerate(top, 1):
+            topics = ",".join(item.topics) if item.topics else "-"
+            title = (item.title or "")[:80]
+            logger.info("  %2d. [%3d] [%s] %s", idx, item.score, topics, title)
+
+
 def build_briefing(
     config_dir: Path | str | None = None,
     output_dir: Path | str | None = None,
@@ -72,6 +101,7 @@ def build_briefing(
     logger.info("After deduplication: %d items", len(unique))
 
     scored = score_items(unique, keywords, scoring_rules)
+    _log_score_distribution(scored)
     min_score = int(scoring_rules.get("minimum_score", 1))
     filtered = [item for item in scored if item.score >= min_score]
 

@@ -28,13 +28,74 @@ topics:
     - structural steel
     - steel structure
     - steel frame
+    - steel building
+    - steel bridge
+    - steel beam
+    - steel column
+    - steel plate
+    - steel joint
+    - steel member
+    - high-strength steel
+    - cold-formed steel
+    - seismic steel
   steel_construction:
     - steel construction
     - steel fabrication
     - steel erection
+    - steel connection
+    - bolted connection
+    - welded connection
+    - composite beam
+    - steel-concrete composite
+    - modular steel
   embodied_carbon:
     - LCA
     - life cycle assessment
     - embodied carbon
     - carbon footprint
 
+# Construction-domain co-occurrence list.
+# LCA / embodied_carbon items must also match at least one of these to be
+# classified into the LCA topic. Keeps food/biodiesel/coffee/aviation LCA out.
+construction_domain_keywords:
+  - building
+  - buildings
+  - construction
+  - built environment
+  - infrastructure
+  - structural
+  - steel
+  - concrete
+  - timber
+  - façade
+  - facade
+  - materials
+  - building material
+  - construction material
+  - material reuse
+  - circular construction
+  - EPD
+  - embodied carbon
+  - low-carbon construction
+  - low carbon building
+  - lifecycle assessment of buildings
+
+# Negative keywords for LCA items. If an LCA-matched item contains any of
+# these (and no construction context), it is downscored and not classified
+# into LCA / Sustainability.
+lca_negative_keywords:
+  - agriculture
+  - food
+  - food sovereignty
+  - biodiesel
+  - biofuel
+  - palm
+  - coffee packaging
+  - passenger transport
+  - aviation
+  - fuel
+  - chemical process
+  - wastewater
+  - livestock
+  - crop
+  - packaging

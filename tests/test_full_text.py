@@ -462,7 +462,11 @@ def test_main_pipeline_does_not_crash_when_full_text_fails(monkeypatch, tmp_path
     with patch(
         "aec_intel_agent.main.CrossrefCollector.collect", return_value=sample
     ), patch("aec_intel_agent.main.ArxivCollector.collect", return_value=[]):
-        output_path = build_briefing(config_dir="config", output_dir=str(tmp_path))
+        output_path = build_briefing(
+            config_dir="config",
+            output_dir=str(tmp_path),
+            seen_items_path=str(tmp_path / "seen.json"),
+        )
 
     assert output_path.exists()
     content = output_path.read_text(encoding="utf-8")

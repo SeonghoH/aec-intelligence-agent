@@ -7,7 +7,10 @@ def test_score_item_counts_title_summary_and_topic_matches() -> None:
         "topics": {
             "bim": ["BIM"],
             "embodied_carbon": ["embodied carbon"],
-        }
+        },
+        # Make the LCA gate pass: title already mentions "construction".
+        "construction_domain_keywords": ["construction"],
+        "lca_negative_keywords": [],
     }
     scoring_rules = {
         "weights": {
