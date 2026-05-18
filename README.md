@@ -161,6 +161,64 @@ If something fails (bad token, integration not connected to the parent
 page, Notion rate limit, etc.), the error is logged and the Markdown
 briefing is still produced.
 
+## Open-Access Full-text Discovery (Optional)
+
+After scoring, the pipeline attempts to find and extract open-access full
+text for a small number of the highest-relevance research items. This is
+strictly conservative:
+
+- **Only open-access sources are attempted.** arXiv abstract URLs are
+  resolved to their `pdf` URL; URLs that already end in `.pdf` are
+  fetched directly. Anything else (publisher landing pages, paywalled
+  domains) is skipped with status `Login Required / Skipped`.
+- **No login, no cookies, no scraping.** Browser automation, paywall
+  bypass, and login flows are explicitly not implemented.
+- **PDFs are never persisted.** They are downloaded into memory with a
+  size cap (20 MB) and a request timeout. After text extraction the
+  bytes are discarded.
+- **Extracted text is local-debug-only.** If text is recovered it is
+  written to `data/full_text/{slug}.txt`. That directory is gitignored
+  and never uploaded to Notion or as a workflow artifact.
+- **No LLM summarization.** This step only extracts raw text — what
+  happens next is a separate, future concern.
+
+**Candidate selection rules**
+
+1. `score >= 80`
+2. `source_type` is `paper` or `preprint`
+3. At most `FULL_TEXT_MAX_ITEMS` items per run (default `3`)
+
+**Environment variables**
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FULL_TEXT_MAX_ITEMS` | `3` | Cap on the number of items processed per run |
+| `FULL_TEXT_MAX_CHARS` | `60000` | Cap on the size of extracted text per item |
+
+**Status values (written to Notion's `Full-text Status` select field)**
+
+- `Not Attempted` — default for items below threshold
+- `Open Access PDF Found` — PDF URL detected
+- `Full Text Extracted` — PDF downloaded and text recovered
+- `PDF Download Failed` — network error, timeout, paywall HTML response,
+  or size cap exceeded
+- `PDF Text Extraction Failed` — PDF could not be parsed
+- `Login Required / Skipped` — URL was not a recognized open-access form
+- `Metadata Only` / `Abstract Only` — reserved for future use
+
+**What Notion stores**
+
+- `Full-text Status` (always written)
+- `Full-text URL` (only when an open-access PDF URL was detected, and
+  only if your Research Items DB schema includes this property — the
+  upload falls back gracefully if it does not)
+- The full extracted text is **not** uploaded to Notion.
+
+If you ran `scripts/setup_notion_databases.py` before this release, the
+new status options and the `Full-text URL` property won't exist in your
+Research Items DB yet. Either re-run the setup script (which creates a
+fresh DB) or add the property and options manually.
+
 ## GitHub Actions Secrets
 
 To enable Notion upload from the daily workflow, add three repository

@@ -23,6 +23,11 @@ class StandardItem(BaseModel):
     score: int = 0
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    # Optional full-text discovery fields (set by the full_text module).
+    full_text_status: str = "Not Attempted"
+    full_text_url: str | None = None
+    full_text_path: str | None = None
+
     @property
     def display_date(self) -> str:
         """Return a stable date string for briefings."""

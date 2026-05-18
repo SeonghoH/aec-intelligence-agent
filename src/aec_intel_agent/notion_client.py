@@ -14,8 +14,13 @@ from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import requests
+
+# Anchor Notion timestamps to Asia/Seoul so the daily-briefing Date column
+# reflects the user's local calendar day. The GitHub runner defaults to UTC.
+KST = ZoneInfo("Asia/Seoul")
 
 from aec_intel_agent.deduplication import (
     normalize_doi,
@@ -44,8 +49,8 @@ _BIM_TOPICS = {
     "ai_in_construction",
 }
 
-MUST_READ_THRESHOLD = 10
-SAVE_THRESHOLD = 5
+MUST_READ_THRESHOLD = 80
+SAVE_THRESHOLD = 30
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +204,7 @@ def build_research_item_properties(
     doi_norm = normalize_doi(item.doi) or ""
     url_norm = normalize_url(item.url)
 
-    return {
+    props: dict[str, Any] = {
         "Title": _title_prop(item.title),
         "Published Date": _date_prop(item.published_date),
         "Source": _select_prop(item.source),
@@ -214,8 +219,16 @@ def build_research_item_properties(
         "Summary": _chunked_rich_text(summary_text),
         "Why It Matters": _chunked_rich_text(why_it_matters),
         "Relevance to Seongho": _chunked_rich_text(relevance_to_seongho),
-        "Full-text Status": _select_prop("Not Available"),
+        "Full-text Status": _select_prop(item.full_text_status or "Not Attempted"),
     }
+
+    # Full-text URL is optional in the Notion schema. Only include it when
+    # the item actually has a discovered open-access URL — the create call
+    # falls back to retrying without it if Notion rejects the property.
+    if item.full_text_url:
+        props["Full-text URL"] = _url_prop(item.full_text_url)
+
+    return props
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +256,31 @@ def _create_page(token: str, db_id: str, properties: dict[str, Any]) -> str:
     )
     response.raise_for_status()
     return response.json().get("id", "")
+
+
+_OPTIONAL_RESEARCH_PROPS = ("Full-text URL",)
+
+
+def _create_research_page_safely(
+    token: str, db_id: str, properties: dict[str, Any]
+) -> str:
+    """Create a Research Item page, retrying without optional properties
+    if Notion rejects the request with a 400 (typically: the user's DB
+    schema does not include the optional property yet)."""
+    try:
+        return _create_page(token, db_id, properties)
+    except requests.exceptions.HTTPError as exc:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        present_optional = [k for k in _OPTIONAL_RESEARCH_PROPS if k in properties]
+        if status == 400 and present_optional:
+            logger.info(
+                "Notion: research DB does not accept %s — retrying without it.",
+                present_optional,
+            )
+            cleaned = {k: v for k, v in properties.items() if k not in present_optional}
+            return _create_page(token, db_id, cleaned)
+        raise
 
 
 def _find_existing_briefing(token: str, db_id: str, date_str: str) -> str | None:
@@ -334,7 +372,7 @@ def upload_to_notion(
         _why_it_matters,
     )
 
-    timestamp = generated_at or datetime.now()
+    timestamp = generated_at or datetime.now(KST)
     date_str = timestamp.strftime("%Y-%m-%d")
 
     # ---- Daily briefing -------------------------------------------------
@@ -403,7 +441,7 @@ def upload_to_notion(
                 relevance_to_seongho=_relevance_to_seongho(item),
                 summary_text=_build_summary(item),
             )
-            _create_page(token, research_db, props)
+            _create_research_page_safely(token, research_db, props)
             result["items_uploaded"] += 1
         except Exception as exc:
             logger.warning(

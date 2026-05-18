@@ -15,8 +15,8 @@ from aec_intel_agent.models import StandardItem
 logger = logging.getLogger(__name__)
 
 CROSSREF_API_URL = "https://api.crossref.org/works"
-DAYS_LOOKBACK = 30
-MAX_ROWS_PER_QUERY = 5
+DAYS_LOOKBACK = 3
+MAX_ROWS_PER_QUERY = 10
 _JATS_TAG = re.compile(r"<[^>]+>")
 
 

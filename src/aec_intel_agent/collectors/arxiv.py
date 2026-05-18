@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import time
 import xml.etree.ElementTree as ET
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 import requests
@@ -15,7 +16,9 @@ from aec_intel_agent.models import StandardItem
 logger = logging.getLogger(__name__)
 
 ARXIV_API_URL = "http://export.arxiv.org/api/query"
-MAX_RESULTS_PER_QUERY = 5
+MAX_RESULTS_PER_QUERY = 15  # Fetch more to account for date filtering
+DAYS_LOOKBACK = 3
+INTER_QUERY_DELAY_SECONDS = 3.0  # arXiv asks ~3s between requests; avoids 429s.
 _ATOM = "http://www.w3.org/2005/Atom"
 
 
@@ -28,10 +31,14 @@ class ArxivCollector(BaseCollector):
         items: list[StandardItem] = []
         seen_ids: set[str] = set()
 
-        for topic_keywords in self.keywords_config.get("topics", {}).values():
-            if not topic_keywords:
-                continue
+        topic_values = [
+            kws for kws in self.keywords_config.get("topics", {}).values() if kws
+        ]
+        for idx, topic_keywords in enumerate(topic_values):
             keyword = topic_keywords[0]
+            # arXiv's API enforces a rate limit; pause between queries.
+            if idx > 0 and INTER_QUERY_DELAY_SECONDS > 0:
+                time.sleep(INTER_QUERY_DELAY_SECONDS)
             try:
                 fetched = self._fetch(keyword, seen_ids)
                 items.extend(fetched)
@@ -41,6 +48,7 @@ class ArxivCollector(BaseCollector):
         return items
 
     def _fetch(self, query: str, seen_ids: set[str]) -> list[StandardItem]:
+        cutoff = date.today() - timedelta(days=DAYS_LOOKBACK)
         params: dict[str, Any] = {
             "search_query": f"all:{query}",
             "max_results": MAX_RESULTS_PER_QUERY,
@@ -49,20 +57,24 @@ class ArxivCollector(BaseCollector):
         }
         response = requests.get(ARXIV_API_URL, params=params, timeout=15)
         response.raise_for_status()
-        return _parse_feed(response.text, seen_ids)
+        return _parse_feed(response.text, seen_ids, cutoff=cutoff)
 
 
-def _parse_feed(xml_text: str, seen_ids: set[str]) -> list[StandardItem]:
+def _parse_feed(
+    xml_text: str, seen_ids: set[str], cutoff: date | None = None
+) -> list[StandardItem]:
     root = ET.fromstring(xml_text)
     items = []
     for entry in root.findall(f"{{{_ATOM}}}entry"):
-        item = _parse_entry(entry, seen_ids)
+        item = _parse_entry(entry, seen_ids, cutoff=cutoff)
         if item:
             items.append(item)
     return items
 
 
-def _parse_entry(entry: ET.Element, seen_ids: set[str]) -> StandardItem | None:
+def _parse_entry(
+    entry: ET.Element, seen_ids: set[str], cutoff: date | None = None
+) -> StandardItem | None:
     id_elem = entry.find(f"{{{_ATOM}}}id")
     arxiv_id = (id_elem.text or "").strip() if id_elem is not None else ""
     if not arxiv_id or arxiv_id in seen_ids:
@@ -84,6 +96,10 @@ def _parse_entry(entry: ET.Element, seen_ids: set[str]) -> StandardItem | None:
             pub_date = date.fromisoformat(published_elem.text[:10])
         except ValueError:
             pass
+
+    # Skip entries older than the cutoff date.
+    if cutoff is not None and pub_date is not None and pub_date < cutoff:
+        return None
 
     authors = []
     for author_elem in entry.findall(f"{{{_ATOM}}}author"):

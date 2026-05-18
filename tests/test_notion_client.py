@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import requests
 
 from aec_intel_agent import notion_client
 from aec_intel_agent.models import StandardItem
@@ -159,6 +160,59 @@ def test_daily_briefing_properties_have_required_fields():
     assert props["Status"]["select"]["name"] == "Draft"
 
 
+def test_research_item_properties_include_full_text_status_default():
+    item = _sample_item()  # default full_text_status == "Not Attempted"
+    props = notion_client.build_research_item_properties(
+        item, why_it_matters="x", relevance_to_seongho="y", summary_text="z"
+    )
+    assert props["Full-text Status"]["select"]["name"] == "Not Attempted"
+    # Full-text URL omitted when there's no discovered url.
+    assert "Full-text URL" not in props
+
+
+def test_research_item_properties_include_full_text_url_when_present():
+    item = _sample_item(
+        full_text_status="Full Text Extracted",
+        full_text_url="https://arxiv.org/pdf/2501.00001.pdf",
+    )
+    props = notion_client.build_research_item_properties(
+        item, why_it_matters="x", relevance_to_seongho="y", summary_text="z"
+    )
+    assert props["Full-text Status"]["select"]["name"] == "Full Text Extracted"
+    assert props["Full-text URL"]["url"] == "https://arxiv.org/pdf/2501.00001.pdf"
+
+
+def test_create_research_page_safely_retries_without_optional_when_400(monkeypatch):
+    """When Notion rejects 'Full-text URL', we should retry without it."""
+    calls: list[dict] = []
+
+    def fake_post(url, **kwargs):
+        body = kwargs.get("json", {})
+        calls.append(body.get("properties", {}))
+        mock = MagicMock()
+        if "Full-text URL" in body.get("properties", {}):
+            err = requests.exceptions.HTTPError("400 Bad Request")
+            err.response = MagicMock(status_code=400)
+            mock.raise_for_status.side_effect = err
+        else:
+            mock.raise_for_status.return_value = None
+            mock.json.return_value = {"id": "page-ok"}
+        return mock
+
+    monkeypatch.setattr(notion_client.requests, "post", fake_post)
+
+    props = {
+        "Title": {"title": [{"type": "text", "text": {"content": "x"}}]},
+        "Full-text URL": {"url": "https://a.pdf"},
+    }
+    page_id = notion_client._create_research_page_safely("t", "db", props)
+
+    assert page_id == "page-ok"
+    # First attempt included Full-text URL, second attempt omitted it.
+    assert "Full-text URL" in calls[0]
+    assert "Full-text URL" not in calls[1]
+
+
 def test_research_item_properties_store_normalized_doi_and_url():
     item = _sample_item(
         doi="https://doi.org/10.1234/ABC",
@@ -178,9 +232,13 @@ def test_research_item_properties_store_normalized_doi_and_url():
 
 
 def test_relevance_label_logic():
-    assert notion_client._relevance_label(_sample_item(score=20, topics=[])) == "High"
+    # High by score (>= MUST_READ_THRESHOLD = 80)
+    assert notion_client._relevance_label(_sample_item(score=85, topics=[])) == "High"
+    # High by topic match (any of steel/lca/bim)
     assert notion_client._relevance_label(_sample_item(score=3, topics=["structural_steel"])) == "High"
-    assert notion_client._relevance_label(_sample_item(score=6, topics=[])) == "Medium"
+    # Medium by score (>= SAVE_THRESHOLD = 30, no topic match)
+    assert notion_client._relevance_label(_sample_item(score=35, topics=[])) == "Medium"
+    # Low (below SAVE_THRESHOLD, no topic match)
     assert notion_client._relevance_label(_sample_item(score=2, topics=[])) == "Low"
 
 

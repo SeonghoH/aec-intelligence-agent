@@ -1,7 +1,6 @@
 weights:
-  title_keyword: 3
-  summary_keyword: 1
-  topic_match: 2
+  title_keyword: 20
+  summary_keyword: 5
+  topic_match: 15
 
-minimum_score: 1
-
+minimum_score: 5

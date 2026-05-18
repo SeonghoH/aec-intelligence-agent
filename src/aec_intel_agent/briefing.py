@@ -6,11 +6,17 @@ import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from aec_intel_agent.models import StandardItem
 
-MUST_READ_THRESHOLD = 10
-SAVE_THRESHOLD = 5
+# All briefing timestamps are anchored to Asia/Seoul so the date the user
+# sees on their morning briefing matches their local calendar day, regardless
+# of where the pipeline runs (GitHub runners default to UTC).
+KST = ZoneInfo("Asia/Seoul")
+
+MUST_READ_THRESHOLD = 80
+SAVE_THRESHOLD = 30
 SUMMARY_MAX_CHARS = 400
 
 _STEEL_TOPICS = {"structural_steel", "steel_construction"}
@@ -198,7 +204,7 @@ def generate_markdown_briefing(
     generated_at: datetime | None = None,
     total_collected: int | None = None,
 ) -> str:
-    timestamp = generated_at or datetime.now()
+    timestamp = generated_at or datetime.now(KST)
     date_str = timestamp.strftime("%Y-%m-%d")
 
     if total_collected is None:
@@ -268,7 +274,7 @@ def write_markdown_briefing(
 ) -> Path:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    now = datetime.now()
+    now = datetime.now(KST)
     filename = filename or f"{now.strftime('%Y-%m-%d')}_daily_briefing.md"
     briefing_path = output_path / filename
     briefing_path.write_text(

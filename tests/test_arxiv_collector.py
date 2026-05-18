@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
 from aec_intel_agent.collectors.arxiv import ArxivCollector
 
-ARXIV_ATOM_RESPONSE = """\
+
+def _recent_date(days_ago: int = 1) -> str:
+    """Return an ISO-8601 date string N days before today, for mock fixtures."""
+    return (date.today() - timedelta(days=days_ago)).isoformat() + "T00:00:00Z"
+
+
+def _arxiv_atom_response() -> str:
+    return f"""\
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <entry>
@@ -14,7 +22,7 @@ ARXIV_ATOM_RESPONSE = """\
     <title>AI-driven digital twin monitoring for construction sites</title>
     <summary>We present a machine learning approach for digital twin
     monitoring of construction sites using sensor data.</summary>
-    <published>2025-01-10T00:00:00Z</published>
+    <published>{_recent_date(1)}</published>
     <author><name>Alice Chen</name></author>
     <author><name>Bob Kim</name></author>
   </entry>
@@ -22,14 +30,14 @@ ARXIV_ATOM_RESPONSE = """\
     <id>http://arxiv.org/abs/2501.00002v1</id>
     <title>Parametric BIM for structural steel design</title>
     <summary>Parametric design workflows integrated with BIM for steel frame structures.</summary>
-    <published>2025-01-08T00:00:00Z</published>
+    <published>{_recent_date(2)}</published>
     <author><name>Carol Lee</name></author>
   </entry>
   <entry>
     <id></id>
     <title></title>
     <summary></summary>
-    <published>2025-01-07T00:00:00Z</published>
+    <published>{_recent_date(1)}</published>
   </entry>
 </feed>
 """
@@ -38,7 +46,7 @@ ARXIV_ATOM_RESPONSE = """\
 def _mock_get(url, **kwargs):
     mock = MagicMock()
     mock.raise_for_status.return_value = None
-    mock.text = ARXIV_ATOM_RESPONSE
+    mock.text = _arxiv_atom_response()
     return mock
 
 
@@ -57,7 +65,7 @@ def test_arxiv_returns_standard_items(mock_get):
     assert items[0].url == "http://arxiv.org/abs/2501.00001v1"
     assert items[0].item_type == "preprint"
     assert items[0].published_date is not None
-    assert items[0].published_date.year == 2025
+    assert items[0].published_date >= date.today() - timedelta(days=3)
     assert "Alice Chen" in items[0].authors
 
 

@@ -108,13 +108,18 @@ def build_research_items_payload(parent_page_id: str) -> dict[str, Any]:
             "Full-text Status": {
                 "select": {
                     "options": [
-                        {"name": "Not Available", "color": "default"},
-                        {"name": "Available", "color": "blue"},
-                        {"name": "Downloaded", "color": "green"},
-                        {"name": "Annotated", "color": "purple"},
+                        {"name": "Not Attempted", "color": "default"},
+                        {"name": "Metadata Only", "color": "gray"},
+                        {"name": "Abstract Only", "color": "yellow"},
+                        {"name": "Open Access PDF Found", "color": "blue"},
+                        {"name": "Full Text Extracted", "color": "green"},
+                        {"name": "PDF Download Failed", "color": "red"},
+                        {"name": "PDF Text Extraction Failed", "color": "red"},
+                        {"name": "Login Required / Skipped", "color": "orange"},
                     ]
                 }
             },
+            "Full-text URL": {"url": {}},
         },
     }
 

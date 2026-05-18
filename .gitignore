@@ -18,6 +18,8 @@ venv/
 # Generated data and outputs
 data/raw/*
 data/processed/*
+# Temporary full-text extractions — local debug only, never committed.
+data/full_text/*
 outputs/*
 # Allow generated Markdown briefings to be tracked.
 !outputs/*.md

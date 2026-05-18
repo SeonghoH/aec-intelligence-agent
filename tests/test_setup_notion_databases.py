@@ -62,6 +62,30 @@ def test_research_items_payload_has_required_properties():
         )
 
 
+def test_research_items_payload_includes_full_text_url():
+    payload = setup.build_research_items_payload("parent")
+    props = payload["properties"]
+    assert "Full-text URL" in props
+    assert "url" in props["Full-text URL"]
+
+
+def test_full_text_status_options_match_new_spec():
+    payload = setup.build_research_items_payload("parent")
+    options = [
+        o["name"]
+        for o in payload["properties"]["Full-text Status"]["select"]["options"]
+    ]
+    for expected in (
+        "Not Attempted",
+        "Open Access PDF Found",
+        "Full Text Extracted",
+        "PDF Download Failed",
+        "PDF Text Extraction Failed",
+        "Login Required / Skipped",
+    ):
+        assert expected in options, f"missing status option: {expected}"
+
+
 def test_select_options_include_expected_values():
     payload = setup.build_research_items_payload("parent")
     props = payload["properties"]

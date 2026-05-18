@@ -48,7 +48,11 @@ def test_pipeline_writes_briefing_when_both_collectors_work(
     mock_crossref.return_value = _crossref_sample()
     mock_arxiv.return_value = _arxiv_sample()
 
-    output_path = build_briefing(config_dir="config", output_dir=str(tmp_path))
+    output_path = build_briefing(
+        config_dir="config",
+        output_dir=str(tmp_path),
+        seen_items_path=str(tmp_path / "seen.json"),
+    )
 
     assert output_path.exists()
     content = output_path.read_text(encoding="utf-8")
@@ -64,7 +68,11 @@ def test_pipeline_writes_briefing_when_both_collectors_work(
 def test_pipeline_continues_when_arxiv_fails(mock_crossref, mock_arxiv, tmp_path):
     mock_crossref.return_value = _crossref_sample()
 
-    output_path = build_briefing(config_dir="config", output_dir=str(tmp_path))
+    output_path = build_briefing(
+        config_dir="config",
+        output_dir=str(tmp_path),
+        seen_items_path=str(tmp_path / "seen.json"),
+    )
 
     assert output_path.exists()
     content = output_path.read_text(encoding="utf-8")
@@ -80,7 +88,11 @@ def test_pipeline_continues_when_arxiv_fails(mock_crossref, mock_arxiv, tmp_path
 def test_pipeline_continues_when_crossref_fails(mock_crossref, mock_arxiv, tmp_path):
     mock_arxiv.return_value = _arxiv_sample()
 
-    output_path = build_briefing(config_dir="config", output_dir=str(tmp_path))
+    output_path = build_briefing(
+        config_dir="config",
+        output_dir=str(tmp_path),
+        seen_items_path=str(tmp_path / "seen.json"),
+    )
 
     assert output_path.exists()
     content = output_path.read_text(encoding="utf-8")
@@ -98,7 +110,11 @@ def test_pipeline_continues_when_crossref_fails(mock_crossref, mock_arxiv, tmp_p
 def test_pipeline_still_writes_briefing_when_both_collectors_fail(
     mock_crossref, mock_arxiv, tmp_path
 ):
-    output_path = build_briefing(config_dir="config", output_dir=str(tmp_path))
+    output_path = build_briefing(
+        config_dir="config",
+        output_dir=str(tmp_path),
+        seen_items_path=str(tmp_path / "seen.json"),
+    )
 
     assert output_path.exists()
     content = output_path.read_text(encoding="utf-8")

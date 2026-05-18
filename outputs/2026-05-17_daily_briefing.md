@@ -3,7 +3,7 @@ Date: 2026-05-17
 
 ## Executive Summary
 
-- 수집 항목 수: 44건
+- 수집 항목 수: 41건
 - 포함 항목 수: 17건
 - 주요 주제: bim, openbim, embodied_carbon
 - 오늘 결과 평가: 강함 (Strong)
@@ -14,7 +14,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-05-01
 - Type: paper
-- Score: 13
+- Score: 90
 - Tags: bim, openbim
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -26,19 +26,21 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-04-22
 - Type: paper
-- Score: 13
+- Score: 85
 - Tags: bim, openbim
 - Summary: The construction (AEC) industry has consolidated Building Information Modelling (BIM) as the standard for producing and managing project information, yet its analytical exploitation in Business Intelligence (BI) environments remains manual, ad hoc and dependent on proprietary platforms. Existing literature addresses partial aspects of the problem —IFC extraction, dashboards, semantic approaches,…
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
 - Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
 - URL: https://doi.org/10.20944/preprints202604.1489.v1
 
+## BIM / Digital Construction
+
 ### Digital twin-based synchronous 4D BIM-driven UAS mission planning using the combined graph approach
 
 - Source: crossref
 - Published: 2026-09-01
 - Type: paper
-- Score: 10
+- Score: 70
 - Tags: bim, digital_twin
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -50,7 +52,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-05-01
 - Type: paper
-- Score: 10
+- Score: 70
 - Tags: bim, openbim
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -62,21 +64,19 @@ Date: 2026-05-17
 - Source: arxiv
 - Published: 2026-05-13
 - Type: preprint
-- Score: 10
+- Score: 65
 - Tags: bim, openbim
 - Summary: Building Information Modeling (BIM) is widely used in the Architecture, Engineering, and Construction (AEC) industry, but the complexity of Industry Foundation Classes (IFC) limits accessibility for non-expert users. To address this, we introduce IfcLLM, a hybrid framework for natural language interaction with IFC-based BIM models.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
 - Relevance to Seongho: BIM 박사 연구의 핵심 주제와 직접 연결됨.
 - URL: http://arxiv.org/abs/2605.13236v1
 
-## BIM / Digital Construction
-
 ### BIM Information Extraction Through LLM-based Adaptive Exploration
 
 - Source: arxiv
 - Published: 2026-05-03
 - Type: preprint
-- Score: 9
+- Score: 60
 - Tags: bim, openbim
 - Summary: BIM models provide structured representations of building geometry, semantics, and topology, yet extracting specific information from them remains remarkably difficult. Current approaches translate natural language into structured queries by assuming a fixed data organization (static approach), which BIM heterogeneity eventually invalidates.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -88,7 +88,7 @@ Date: 2026-05-17
 - Source: arxiv
 - Published: 2026-04-27
 - Type: preprint
-- Score: 9
+- Score: 60
 - Tags: bim, openbim
 - Summary: Automatic generation of Building Information Models (BIM) from building scans is a key challenge in architecture and construction. We present a modular pipeline for generating IFC-compliant BIM from 3D point clouds.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -100,7 +100,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2027-07-16
 - Type: paper
-- Score: 6
+- Score: 40
 - Tags: bim
 - Summary: This study compares the cost estimation time for structural work between conventional methods and 5D BIM for the Precision 5 National Police Building Project. The results show that 5D BIM significantly accelerated the estimation process without compromising accuracy.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -112,7 +112,7 @@ Date: 2026-05-17
 - Source: arxiv
 - Published: 2026-04-30
 - Type: preprint
-- Score: 6
+- Score: 40
 - Tags: bim, digital_twin
 - Summary: Accurate localization is a fundamental requirement for autonomous robots operating in indoor environments. Scene graphs encode the spatial structure of an environment as a hierarchy of semantic entities and their relationships, and can be constructed both online from robot sensor data and offline from architectural priors such as Building Information Models (BIM).
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -124,7 +124,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-12-31
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: bim
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -136,7 +136,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-09-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: bim
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -148,7 +148,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-09-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: bim
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: BIM-Digital Twin-AI 기반 의사결정 지원 시스템과 연결될 수 있음.
@@ -166,7 +166,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-08-01
 - Type: paper
-- Score: 8
+- Score: 55
 - Tags: embodied_carbon
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
@@ -178,7 +178,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-09-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: embodied_carbon
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
@@ -190,7 +190,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-08-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: embodied_carbon
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
@@ -202,7 +202,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-08-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: embodied_carbon
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
@@ -214,7 +214,7 @@ Date: 2026-05-17
 - Source: crossref
 - Published: 2026-07-01
 - Type: paper
-- Score: 5
+- Score: 35
 - Tags: embodied_carbon
 - Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
 - Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
@@ -230,5 +230,5 @@ Date: 2026-05-17
 해당 항목 없음.
 ## Excluded / Low Relevance Summary
 
-- 수집 대비 제외 항목: 27건
+- 수집 대비 제외 항목: 24건
 - 사유: 최소 점수 미달 또는 키워드 매칭 부족.

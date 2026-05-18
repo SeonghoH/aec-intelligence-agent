@@ -55,10 +55,12 @@ jobs:
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
-          git add outputs/*.md || true
+          git add outputs/*.md data/seen_items.json || true
           if git diff --cached --quiet; then
             echo "No briefing changes to commit."
           else
-            git commit -m "chore: add daily briefing $(date -u +%Y-%m-%d)"
+            # Use Asia/Seoul date so the commit message matches the briefing
+            # filename (Python code is also pinned to KST). The runner is UTC.
+            git commit -m "chore: add daily briefing $(TZ=Asia/Seoul date +%Y-%m-%d)"
             git push
           fi

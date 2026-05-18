@@ -82,9 +82,9 @@ def test_empty_items_shows_no_items_message():
 # --- Routing ----------------------------------------------------------------
 
 
-def test_must_read_uses_threshold_of_10():
-    high = _item(title="High", score=10, topics=["bim"])
-    just_below = _item(title="Below", score=9, topics=["bim"])
+def test_must_read_uses_threshold_of_80():
+    high = _item(title="High", score=85, topics=["bim"])
+    just_below = _item(title="Below", score=79, topics=["bim"])
     md = generate_markdown_briefing([high, just_below])
 
     must_read = _section_text(md, "Must Read")
@@ -118,7 +118,7 @@ def test_steel_priority_beats_bim_when_both_topics_present():
 
 
 def test_unmatched_mid_score_item_goes_to_papers_to_save():
-    item = _item(title="Niche", score=6, topics=[])
+    item = _item(title="Niche", score=35, topics=[])
     md = generate_markdown_briefing([item])
     assert "Niche" in _section_text(md, "Papers to Save")
 
@@ -131,8 +131,8 @@ def test_unmatched_low_score_item_goes_to_weak_signals():
 
 def test_each_item_appears_in_exactly_one_section():
     items = [
-        _item(title="Paper A", score=10, topics=["bim"], summary="alpha."),
-        _item(title="Paper B", score=7, topics=["structural_steel"], summary="beta."),
+        _item(title="Paper A", score=85, topics=["bim"], summary="alpha."),
+        _item(title="Paper B", score=40, topics=["structural_steel"], summary="beta."),
         _item(title="Paper C", score=3, topics=["bim"], summary="gamma."),
     ]
     md = generate_markdown_briefing(items)
