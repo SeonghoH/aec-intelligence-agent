@@ -167,10 +167,15 @@ After scoring, the pipeline attempts to find and extract open-access full
 text for a small number of the highest-relevance research items. This is
 strictly conservative:
 
-- **Only open-access sources are attempted.** arXiv abstract URLs are
-  resolved to their `pdf` URL; URLs that already end in `.pdf` are
-  fetched directly. Anything else (publisher landing pages, paywalled
-  domains) is skipped with status `Login Required / Skipped`.
+- **Only open-access sources are attempted.** Three paths, in order:
+  1. arXiv abstract URLs are resolved to the `pdf` URL.
+  2. URLs that already end in `.pdf` are fetched directly.
+  3. For Crossref papers with a DOI, [Unpaywall](https://unpaywall.org/)
+     is queried for an author-deposited open-access copy (e.g. a
+     university repository). The Unpaywall API is free and requires no
+     key, but a contact email is recommended via `UNPAYWALL_EMAIL`.
+  Anything else (closed-access publisher pages, paywalled domains with
+  no OA mirror) is skipped with status `Login Required / Skipped`.
 - **No login, no cookies, no scraping.** Browser automation, paywall
   bypass, and login flows are explicitly not implemented.
 - **PDFs are never persisted.** They are downloaded into memory with a
@@ -194,6 +199,7 @@ strictly conservative:
 |---|---|---|
 | `FULL_TEXT_MAX_ITEMS` | `3` | Cap on the number of items processed per run |
 | `FULL_TEXT_MAX_CHARS` | `60000` | Cap on the size of extracted text per item |
+| `UNPAYWALL_EMAIL` | placeholder | Email sent to Unpaywall for identification (recommended: your real address) |
 
 **Status values (written to Notion's `Full-text Status` select field)**
 

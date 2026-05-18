@@ -66,6 +66,13 @@ DEFAULT_MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB
 CANDIDATE_SCORE_THRESHOLD = 80
 CANDIDATE_SOURCE_TYPES = {"paper", "preprint"}
 
+# Unpaywall — free DOI → open-access PDF lookup. The API REQUIRES an
+# email parameter so they can contact heavy users; the default below is
+# a generic identifier. Override via the `UNPAYWALL_EMAIL` env var.
+UNPAYWALL_API_BASE = "https://api.unpaywall.org/v2"
+UNPAYWALL_DEFAULT_EMAIL = "aec-intelligence-agent@example.com"
+UNPAYWALL_TIMEOUT_SECONDS = 10
+
 _ARXIV_ID_PATTERN = re.compile(
     r"arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)", re.IGNORECASE
 )
@@ -128,31 +135,96 @@ def select_candidates(
 # --- PDF URL detection ------------------------------------------------------
 
 
+def unpaywall_lookup(
+    doi: str, *, email: str | None = None
+) -> str | None:
+    """Query Unpaywall for an open-access PDF URL given a DOI.
+
+    Returns the best OA PDF URL, or ``None`` if the DOI is unknown,
+    closed-access, or the request fails. Never raises — every error
+    path turns into ``None`` so the caller can keep using its
+    "no PDF" fallback.
+    """
+    doi_clean = (doi or "").strip()
+    if not doi_clean:
+        return None
+    doi_clean = doi_clean.removeprefix("https://doi.org/").removeprefix("doi:")
+
+    address = (email or os.environ.get("UNPAYWALL_EMAIL")
+               or UNPAYWALL_DEFAULT_EMAIL).strip()
+
+    try:
+        response = requests.get(
+            f"{UNPAYWALL_API_BASE}/{doi_clean}",
+            params={"email": address},
+            timeout=UNPAYWALL_TIMEOUT_SECONDS,
+            headers={"User-Agent": f"aec-intelligence-agent (+{address})"},
+        )
+    except Exception as exc:
+        logger.info("Unpaywall: lookup failed for %s: %s", doi_clean, exc)
+        return None
+
+    if response.status_code != 200:
+        # 404 (DOI unknown) is normal and not worth a warning.
+        if response.status_code != 404:
+            logger.info(
+                "Unpaywall: HTTP %d for %s", response.status_code, doi_clean
+            )
+        return None
+
+    try:
+        data = response.json()
+    except Exception:
+        return None
+
+    if not isinstance(data, dict) or not data.get("is_oa"):
+        return None
+
+    best = data.get("best_oa_location")
+    if not isinstance(best, dict):
+        return None
+
+    pdf_url = best.get("url_for_pdf") or best.get("url")
+    if pdf_url:
+        return str(pdf_url)
+    return None
+
+
 def detect_pdf_url(item: StandardItem) -> str | None:
     """Detect an open-access PDF URL, or return ``None``.
 
-    Only two safe paths:
+    Three safe paths, in order:
 
-    - arXiv abs URL → ``https://arxiv.org/pdf/{id}.pdf``
-    - Direct ``.pdf`` URL → returned as-is
+    1. arXiv abs URL → ``https://arxiv.org/pdf/{id}.pdf``
+    2. Direct ``.pdf`` URL → returned as-is
+    3. DOI → Unpaywall best OA location (if any)
 
-    Anything else (publisher landing pages, paywalled domains, etc.)
-    returns ``None`` and the item is left to ``STATUS_LOGIN_REQUIRED``.
+    Anything else (paywalled publisher pages with no OA mirror) returns
+    ``None`` and the item is left at ``STATUS_LOGIN_REQUIRED``.
     """
     url = (item.url or "").strip()
-    if not url:
-        return None
 
-    # arXiv
-    if (item.source or "").lower() == "arxiv" or "arxiv.org/" in url.lower():
+    # 1. arXiv
+    if url and (
+        (item.source or "").lower() == "arxiv" or "arxiv.org/" in url.lower()
+    ):
         match = _ARXIV_ID_PATTERN.search(url)
         if match:
             arxiv_id = re.sub(r"v\d+$", "", match.group(1))
             return f"https://arxiv.org/pdf/{arxiv_id}.pdf"
 
-    # Direct PDF
-    if url.lower().endswith(".pdf"):
+    # 2. Direct PDF link
+    if url and url.lower().endswith(".pdf"):
         return url
+
+    # 3. DOI → Unpaywall (catches Crossref papers with author-deposited OA)
+    if item.doi:
+        oa_url = unpaywall_lookup(item.doi)
+        if oa_url:
+            logger.info(
+                "Unpaywall: found OA PDF for %s", item.doi
+            )
+            return oa_url
 
     return None
 

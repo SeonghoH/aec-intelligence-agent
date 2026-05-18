@@ -49,6 +49,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Unpaywall identification email (free, no key). If unset, a
+          # generic placeholder is used; the API will still respond.
+          UNPAYWALL_EMAIL: ${{ secrets.UNPAYWALL_EMAIL }}
         run: python -m aec_intel_agent.main
 
       - name: Upload briefing artifact
