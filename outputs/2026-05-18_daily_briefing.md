@@ -4,8 +4,8 @@ Date: 2026-05-18
 ## Executive Summary
 
 - 수집 항목 수: 117건
-- 포함 항목 수: 29건
-- 주요 주제: bim, ai_in_construction, digital_twin
+- 포함 항목 수: 31건
+- 주요 주제: embodied_carbon, bim, ai_in_construction
 - 오늘 결과 평가: 강함 (Strong)
 ## Must Read
 
@@ -247,6 +247,126 @@ Date: 2026-05-18
 
 ## LCA / Sustainability
 
+### Life cycle assessment (LCA) of high-input production systems for achieving indigenous food sovereignty
+
+- Source: crossref
+- Published: 2026-08-01
+- Type: paper
+- Score: 55
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.clrc.2026.100432
+
+### Microalgae–bacteria photobioreactor (MBPR) based bioremediation of coking wastewater under carbon neutralization background: performance and toxicity evaluation, response metabolism and life cycle assessment (LCA)
+
+- Source: crossref
+- Published: 2026-07-01
+- Type: paper
+- Score: 55
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.biortech.2026.134499
+
+### Prospects of sago-based biorefineries in the moluccas for renewable fuel production: a critical review on life cycle assessment (LCA)
+
+- Source: crossref
+- Published: 2026-07-01
+- Type: paper
+- Score: 55
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.sajce.2026.100880
+
+### A Weyl-type theorem for Diophantine approximations driven by LCA groups and applications
+
+- Source: arxiv
+- Published: 2026-05-15
+- Type: preprint
+- Score: 40
+- Tags: embodied_carbon
+- Summary: We investigate actions of locally compact Abelian (LCA) groups on the torus $\mathbb{T}^n$, motivated by their close connection with Diophantine approximation. As consequences, we establish several foundational results for LCA groups, including the Bohr orthogonality of
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.15580v1
+
+### A review of system approach towards sustainable palm biodiesel: A multi-framework integration of TEA, LCA, and carbon accounting within environment-food-energy-water (EFEW)
+
+- Source: crossref
+- Published: 2026-09-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.biombioe.2026.109225
+
+### Beyond operational emissions: LCA of passenger transport modes for short-distance travel
+
+- Source: crossref
+- Published: 2026-08-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.jairtraman.2026.103008
+
+### Process-safe circular valorization of industrial side streams in hard-to-abate sectors: A risk-TEA-LCA decision framework
+
+- Source: crossref
+- Published: 2026-08-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.jlp.2026.106038
+
+### From multimaterial to monomaterial: An LCA of flexible coffee packaging
+
+- Source: crossref
+- Published: 2026-07-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.susmat.2026.e01979
+
+### How prospective LCA handles time in circularity-oriented assessments: Evidence and gaps
+
+- Source: crossref
+- Published: 2026-07-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.eiar.2026.108478
+
+### Fluoride removal in batch and column systems using La-MOF derived from waste PET: Experimental analysis, DFT calculation, and LCA evaluation
+
+- Source: crossref
+- Published: 2026-07-01
+- Type: paper
+- Score: 35
+- Tags: embodied_carbon
+- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: https://doi.org/10.1016/j.inoche.2026.116713
+
 ### Building insulation materials for the best trade-off between GWP and costs. An LCA-based approach across Italian climatic zones
 
 - Source: crossref
@@ -259,120 +379,26 @@ Date: 2026-05-18
 - Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
 - URL: https://doi.org/10.1016/j.enbuild.2026.117505
 
+### Sustainability in Telecom: Energy-Efficient Networks and Circular Economy Models to Reduce Carbon Footprints and Increase Efficiency
+
+- Source: arxiv
+- Published: 2026-05-15
+- Type: preprint
+- Score: 35
+- Tags: embodied_carbon
+- Summary: The increasing environmental impact of the telecom industry has heightened the need for sustainable telecommunications networks. With skyrocketing data traffic and 5G gaining a foothold, telecom operators are under pressure to sustain digital growth while meeting their environmental responsibilities.
+- Why it matters: LCA WG 및 embodied carbon 관련 연구 방향과 연결 가능함.
+- Relevance to Seongho: LCA WG 작업 및 박사 연구와 직접 연결됨.
+- URL: http://arxiv.org/abs/2605.16109v1
+
 ## Papers to Save
 
 해당 항목 없음.
 
 ## Weak Signals
 
-### Microalgae–bacteria photobioreactor (MBPR) based bioremediation of coking wastewater under carbon neutralization background: performance and toxicity evaluation, response metabolism and life cycle assessment (LCA)
-
-- Source: crossref
-- Published: 2026-07-01
-- Type: paper
-- Score: 25
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.biortech.2026.134499
-
-### Prospects of sago-based biorefineries in the moluccas for renewable fuel production: a critical review on life cycle assessment (LCA)
-
-- Source: crossref
-- Published: 2026-07-01
-- Type: paper
-- Score: 25
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.sajce.2026.100880
-
-### A Weyl-type theorem for Diophantine approximations driven by LCA groups and applications
-
-- Source: arxiv
-- Published: 2026-05-15
-- Type: preprint
-- Score: 25
-- Tags: (없음)
-- Summary: We investigate actions of locally compact Abelian (LCA) groups on the torus $\mathbb{T}^n$, motivated by their close connection with Diophantine approximation. As consequences, we establish several foundational results for LCA groups, including the Bohr orthogonality of
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: http://arxiv.org/abs/2605.15580v1
-
-### Process-safe circular valorization of industrial side streams in hard-to-abate sectors: A risk-TEA-LCA decision framework
-
-- Source: crossref
-- Published: 2026-08-01
-- Type: paper
-- Score: 20
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.jlp.2026.106038
-
-### How prospective LCA handles time in circularity-oriented assessments: Evidence and gaps
-
-- Source: crossref
-- Published: 2026-07-01
-- Type: paper
-- Score: 20
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.eiar.2026.108478
-
-### Fluoride removal in batch and column systems using La-MOF derived from waste PET: Experimental analysis, DFT calculation, and LCA evaluation
-
-- Source: crossref
-- Published: 2026-07-01
-- Type: paper
-- Score: 20
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.inoche.2026.116713
-
-### Sustainability in Telecom: Energy-Efficient Networks and Circular Economy Models to Reduce Carbon Footprints and Increase Efficiency
-
-- Source: arxiv
-- Published: 2026-05-15
-- Type: preprint
-- Score: 20
-- Tags: (없음)
-- Summary: The increasing environmental impact of the telecom industry has heightened the need for sustainable telecommunications networks. With skyrocketing data traffic and 5G gaining a foothold, telecom operators are under pressure to sustain digital growth while meeting their environmental responsibilities.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: http://arxiv.org/abs/2605.16109v1
-
-### Life cycle assessment (LCA) of high-input production systems for achieving indigenous food sovereignty
-
-- Source: crossref
-- Published: 2026-08-01
-- Type: paper
-- Score: 10
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.clrc.2026.100432
-
-### Beyond operational emissions: LCA of passenger transport modes for short-distance travel
-
-- Source: crossref
-- Published: 2026-08-01
-- Type: paper
-- Score: 5
-- Tags: (없음)
-- Summary: 초록 또는 상세 설명이 부족하여 제목과 메타데이터 기준으로만 판단함.
-- Why it matters: 현재 주요 토픽과의 직접 연결은 약함. 추후 참고용으로만 검토.
-- Relevance to Seongho: 현재 우선 순위는 낮음. 박사 연구 참고용으로만 보관.
-- URL: https://doi.org/10.1016/j.jairtraman.2026.103008
+해당 항목 없음.
 ## Excluded / Low Relevance Summary
 
-- 수집 대비 제외 항목: 88건
+- 수집 대비 제외 항목: 86건
 - 사유: 최소 점수 미달 또는 키워드 매칭 부족.
