@@ -55,7 +55,15 @@ class ArxivCollector(BaseCollector):
             "sortBy": "submittedDate",
             "sortOrder": "descending",
         }
-        response = requests.get(ARXIV_API_URL, params=params, timeout=15)
+        # arXiv started rejecting requests without a User-Agent (HTTP 406).
+        # Also set Accept explicitly to the Atom feed format the API serves.
+        headers = {
+            "User-Agent": "aec-intelligence-agent/0.1 (research; +https://github.com)",
+            "Accept": "application/atom+xml, application/xml;q=0.9, */*;q=0.5",
+        }
+        response = requests.get(
+            ARXIV_API_URL, params=params, headers=headers, timeout=15
+        )
         response.raise_for_status()
         return _parse_feed(response.text, seen_ids, cutoff=cutoff)
 
