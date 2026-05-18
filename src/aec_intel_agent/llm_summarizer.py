@@ -126,9 +126,14 @@ def get_pick_min_items() -> int:
 
 
 def is_daily_pick_enabled() -> bool:
-    """Whether to attempt the daily pick. Defaults to LLM_ENABLED."""
+    """Whether to attempt the daily pick. Defaults to LLM_ENABLED.
+
+    Treats an empty string the same as unset, so users who haven't added
+    the optional `LLM_DAILY_PICK_ENABLED` GitHub secret still get the
+    pick when `LLM_ENABLED=true`.
+    """
     raw = os.environ.get("LLM_DAILY_PICK_ENABLED")
-    if raw is None:
+    if not raw:  # None or empty string
         return is_enabled()
     return _truthy(raw)
 

@@ -415,6 +415,23 @@ def test_pick_display_text_empty_when_skipped():
     assert p.display_text == ""
 
 
+def test_pick_empty_string_env_treated_as_unset(monkeypatch):
+    """GitHub Actions passes '' when a secret is not registered.
+    That must NOT count as 'pick disabled' — fall back to LLM_ENABLED."""
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setenv("LLM_DAILY_PICK_ENABLED", "")  # secret unset case
+    monkeypatch.setenv("LLM_DAILY_PICK_MIN_ITEMS", "3")
+    monkeypatch.setattr(
+        "aec_intel_agent.llm_summarizer.call_llm",
+        lambda prompt, **kw: _GOOD_PICK_RESPONSE,
+    )
+    items = [_scored_item(f"P{i}", 50) for i in range(5)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_GENERATED
+
+
 def test_pick_can_be_disabled_independently_of_summary(monkeypatch):
     """LLM_DAILY_PICK_ENABLED=false turns off pick even when LLM_ENABLED=true."""
     monkeypatch.setenv("LLM_ENABLED", "true")
