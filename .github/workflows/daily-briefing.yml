@@ -38,6 +38,17 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DAILY_DB_ID: ${{ secrets.NOTION_DAILY_DB_ID }}
           NOTION_RESEARCH_DB_ID: ${{ secrets.NOTION_RESEARCH_DB_ID }}
+          # Optional LLM summarization. Skipped entirely when LLM_ENABLED
+          # is missing/false or the provider's API key is unset.
+          LLM_ENABLED: ${{ secrets.LLM_ENABLED }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_MAX_ITEMS: ${{ secrets.LLM_MAX_ITEMS }}
+          LLM_MIN_SCORE: ${{ secrets.LLM_MIN_SCORE }}
+          LLM_MAX_CHARS: ${{ secrets.LLM_MAX_CHARS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m aec_intel_agent.main
 
       - name: Upload briefing artifact

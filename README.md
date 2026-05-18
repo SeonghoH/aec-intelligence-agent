@@ -235,3 +235,118 @@ The workflow passes these as environment variables to the briefing step
 only. Their values are never printed. If you skip adding these secrets,
 the workflow continues to work and only produces the Markdown briefing.
 
+## LLM Detailed Summarization (Optional)
+
+For the highest-scoring open-access full-text items, the pipeline can ask
+an LLM (currently Google Gemini via `google-genai`) for a structured
+Korean summary covering research question, methodology, key findings,
+limitations, practical value, and per-workflow relevance (PhD,
+constructsteel, LCA WG). Results are attached to `metadata["llm_summary"]`
+and pushed back to the matching Notion Research Items page.
+
+**Strict scope:**
+
+- The summarizer runs at most `LLM_MAX_ITEMS` times per pipeline
+  invocation (default `1`).
+- It only processes items with `score >= LLM_MIN_SCORE` (default `80`),
+  `full_text_status == "Full Text Extracted"`, and a valid local
+  full-text path.
+- It reads at most `LLM_MAX_CHARS` characters of the extracted text
+  (default `40000`).
+- It is completely disabled unless `LLM_ENABLED=true` AND a provider key
+  is set.
+- Failures (network, parse, missing Notion property) are logged and
+  swallowed — the Markdown briefing and Notion upload always continue.
+
+### Enable locally
+
+1. Get a Gemini API key at <https://aistudio.google.com> (sign in, click
+   *Get API key* → *Create API key*). Free tier is enough for daily use
+   (1500 req/day for Flash, 50 req/day for Pro).
+2. Add to your `.env`:
+
+   ```bash
+   LLM_ENABLED=true
+   LLM_PROVIDER=gemini
+   LLM_MODEL=gemini-2.5-pro
+   GEMINI_API_KEY=AIzaSy...your_key...
+   LLM_MAX_ITEMS=1
+   LLM_MIN_SCORE=80
+   LLM_MAX_CHARS=40000
+   ```
+
+3. Run the pipeline:
+
+   ```bash
+   PYTHONPATH=src python3 -m aec_intel_agent.main
+   ```
+
+   You should see:
+
+   ```
+   INFO aec_intel_agent.llm_summarizer: LLM: summarizing N candidate(s) ...
+   ```
+
+### Enable in GitHub Actions
+
+Add these repository secrets in **Settings → Secrets and variables →
+Actions**:
+
+| Secret name | Required? | Example value |
+|---|---|---|
+| `LLM_ENABLED` | yes | `true` |
+| `LLM_PROVIDER` | yes | `gemini` |
+| `LLM_MODEL` | yes | `gemini-2.5-pro` |
+| `GEMINI_API_KEY` | yes (for Gemini) | `AIzaSy...` |
+| `LLM_MAX_ITEMS` | optional | `1` |
+| `LLM_MIN_SCORE` | optional | `80` |
+| `LLM_MAX_CHARS` | optional | `40000` |
+
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are wired up in the workflow
+for future providers but are not used while `LLM_PROVIDER=gemini`.
+
+### Notion properties to add manually
+
+The LLM summary writes to optional columns on the **Research Items**
+database. The pipeline degrades gracefully if any of these is missing —
+you'll just see a warning log line — but to actually see results in
+Notion, add these properties to the DB:
+
+| Property name | Type |
+|---|---|
+| Detailed Summary | Rich text |
+| Research Question | Rich text |
+| Methodology | Rich text |
+| Key Findings | Rich text |
+| Limitations | Rich text |
+| Practical Value | Rich text |
+| Relevance to PhD | Rich text |
+| Relevance to constructsteel | Rich text |
+| Relevance to LCA WG | Rich text |
+| Read Priority | Select (options: `High`, `Medium`, `Low`) |
+| LLM Summary Status | Select (options: `Summarized`, `Failed`, `Skipped - No Full Text`, `Skipped - Low Score`, `Not Attempted`) |
+
+### Cost control
+
+Gemini pricing (Google AI Studio free tier covers most daily runs):
+
+- `gemini-2.5-pro`: 50 requests/day free; paid tier is roughly $1.25 /
+  1M input tokens, $10 / 1M output.
+- `gemini-2.5-flash`: 1500 requests/day free; cheaper paid tier.
+
+With `LLM_MAX_ITEMS=1` and a typical 40k-character input, daily cost
+stays at $0 in the free tier. Bump `LLM_MAX_ITEMS` only after you have
+verified quality on a few real runs.
+
+### What is summarized vs. not
+
+| | Summarized | Not summarized |
+|---|---|---|
+| Score `>= LLM_MIN_SCORE` | ✅ | ❌ |
+| `full_text_status == "Full Text Extracted"` | ✅ | ❌ (abstract-only, metadata-only, failed extractions) |
+| Source type `paper` or `preprint` | ✅ | ❌ (blog, news, generic article) |
+| Off-topic LCA (food, biofuel, …) | — | ❌ already excluded upstream by the relevance gate |
+
+The LLM is asked to flag missing information rather than invent it, and
+to keep its output strictly to the JSON schema the parser expects.
+

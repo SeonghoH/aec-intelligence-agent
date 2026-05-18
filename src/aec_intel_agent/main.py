@@ -20,7 +20,8 @@ from aec_intel_agent.collectors.crossref import CrossrefCollector
 from aec_intel_agent.config_loader import load_config
 from aec_intel_agent.deduplication import deduplicate_items
 from aec_intel_agent.full_text import process_items as run_full_text_pipeline
-from aec_intel_agent.notion_client import upload_to_notion
+from aec_intel_agent.llm_summarizer import process_items as run_llm_summarizer
+from aec_intel_agent.notion_client import update_research_item_summary, upload_to_notion
 from aec_intel_agent.scoring import score_items
 from aec_intel_agent.seen_items import (
     DEFAULT_SEEN_PATH,
@@ -122,6 +123,13 @@ def build_briefing(
     except Exception as exc:
         logger.warning("Full-text pipeline raised unexpectedly: %s", exc)
 
+    # Optional LLM summarization. Disabled unless LLM_ENABLED=true and an
+    # API key is set. Attaches `metadata["llm_summary"]` to processed items.
+    try:
+        fresh = run_llm_summarizer(fresh)
+    except Exception as exc:
+        logger.warning("LLM summarizer raised unexpectedly: %s", exc)
+
     output_path = write_markdown_briefing(
         fresh,
         output_dir=output_dir,
@@ -133,6 +141,20 @@ def build_briefing(
         items=fresh,
         total_collected=len(collected),
     )
+
+    # Push LLM summaries back to the corresponding Notion Research Items
+    # pages. Safe no-op when Notion is not configured or pages are missing.
+    for item in fresh:
+        meta = item.metadata if isinstance(item.metadata, dict) else {}
+        summary = meta.get("llm_summary") if isinstance(meta, dict) else None
+        if not summary:
+            continue
+        try:
+            update_research_item_summary(item, summary)
+        except Exception as exc:
+            logger.warning(
+                "Notion LLM summary update raised unexpectedly: %s", exc
+            )
 
     # Persist the updated seen-key set only after a successful run.
     try:

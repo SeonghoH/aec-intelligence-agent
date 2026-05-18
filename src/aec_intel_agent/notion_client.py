@@ -258,6 +258,145 @@ def _create_page(token: str, db_id: str, properties: dict[str, Any]) -> str:
     return response.json().get("id", "")
 
 
+def _update_page(token: str, page_id: str, properties: dict[str, Any]) -> None:
+    """Patch an existing page's properties. Used by LLM summary updates."""
+    response = requests.patch(
+        f"{NOTION_API_BASE}/pages/{page_id}",
+        headers=_headers(token),
+        json={"properties": properties},
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+
+
+# Properties that the LLM summarizer may write back. Each is OPTIONAL in
+# the Notion schema — if the user has not added the column to their DB,
+# the update call will return 400 for that property and we'll retry
+# without it. See `_update_research_page_safely`.
+_LLM_PROPERTY_BUILDERS: tuple[tuple[str, str], ...] = (
+    # (notion_property_name, llm_summary_dict_key)
+    ("Detailed Summary", "detailed_summary"),
+    ("Research Question", "research_question"),
+    ("Methodology", "methodology"),
+    ("Key Findings", "key_findings"),
+    ("Limitations", "limitations"),
+    ("Practical Value", "practical_value"),
+    ("Relevance to PhD", "relevance_to_phd"),
+    ("Relevance to constructsteel", "relevance_to_constructsteel"),
+    ("Relevance to LCA WG", "relevance_to_lca_wg"),
+)
+
+
+def build_llm_summary_properties(summary: dict[str, Any]) -> dict[str, Any]:
+    """Build Notion property payload from an LLM summary dict.
+
+    Read Priority and LLM Summary Status are Select fields; the long-form
+    text fields are rich-text. All are optional in the DB schema — the
+    update path retries without rejected properties.
+    """
+    props: dict[str, Any] = {}
+    for notion_name, key in _LLM_PROPERTY_BUILDERS:
+        val = summary.get(key)
+        if val:
+            props[notion_name] = _chunked_rich_text(val)
+    if summary.get("read_priority"):
+        props["Read Priority"] = _select_prop(summary["read_priority"])
+    if summary.get("summary_status"):
+        props["LLM Summary Status"] = _select_prop(summary["summary_status"])
+    return props
+
+
+def _update_research_page_safely(
+    token: str, page_id: str, properties: dict[str, Any]
+) -> None:
+    """Patch a Research Items page with LLM summary fields.
+
+    If Notion returns 400 (typically because the user has not added one of
+    the optional LLM columns to their DB schema), drop the rejected
+    property and retry. Falls through silently if everything is rejected.
+    """
+    if not properties:
+        return
+    remaining = dict(properties)
+    while remaining:
+        try:
+            _update_page(token, page_id, remaining)
+            return
+        except requests.exceptions.HTTPError as exc:
+            response = getattr(exc, "response", None)
+            status = getattr(response, "status_code", None)
+            body = getattr(response, "text", "") or ""
+            if status != 400:
+                raise
+            # Try to find which property name Notion is rejecting.
+            dropped: list[str] = []
+            for name in list(remaining):
+                if name in body:
+                    remaining.pop(name)
+                    dropped.append(name)
+            if not dropped:
+                # Notion didn't name a specific property: give up.
+                logger.warning(
+                    "Notion: 400 updating page; no recognizable property to drop. "
+                    "Tried: %s",
+                    list(remaining),
+                )
+                return
+            logger.info(
+                "Notion: research page schema missing %s — retrying without.",
+                dropped,
+            )
+
+
+def update_research_item_summary(
+    item: StandardItem,
+    summary: dict[str, Any],
+) -> bool:
+    """Look up the item's existing Notion page and patch the LLM summary.
+
+    Returns True iff a page was found AND at least one property was
+    accepted. Skips silently (returns False) when Notion is not
+    configured or when no matching page exists. Never raises into the
+    main pipeline.
+    """
+    if not is_configured():
+        return False
+    if not summary:
+        return False
+
+    token = os.environ["NOTION_TOKEN"]
+    research_db = os.environ["NOTION_RESEARCH_DB_ID"]
+
+    try:
+        page_id = _find_existing_research_item(
+            token, research_db, item.doi, item.url, item.title
+        )
+    except Exception as exc:
+        logger.warning(
+            "Notion: could not look up page for LLM update %r: %s",
+            (item.title or "")[:60], exc,
+        )
+        return False
+
+    if not page_id:
+        logger.info(
+            "Notion: no existing page for LLM summary of %r — skipping.",
+            (item.title or "")[:60],
+        )
+        return False
+
+    props = build_llm_summary_properties(summary)
+    try:
+        _update_research_page_safely(token, page_id, props)
+        return True
+    except Exception as exc:
+        logger.warning(
+            "Notion: LLM summary update failed for %r: %s",
+            (item.title or "")[:60], exc,
+        )
+        return False
+
+
 _OPTIONAL_RESEARCH_PROPS = ("Full-text URL",)
 
 
