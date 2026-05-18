@@ -292,6 +292,147 @@ def test_pipeline_never_crashes_when_provider_call_raises(monkeypatch, tmp_path)
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Daily pick
+# ---------------------------------------------------------------------------
+
+
+def _scored_item(title: str, score: int, topics=None, summary="") -> StandardItem:
+    return StandardItem(
+        title=title, source="test", score=score,
+        topics=topics or [], summary=summary,
+    )
+
+
+_GOOD_PICK_RESPONSE = json.dumps({
+    "pick_index": 2,
+    "reasoning": (
+        "이 논문은 BIM과 디지털 트윈을 결합하여 강구조 모니터링을 자동화하는 "
+        "구체적인 프레임워크를 제시한다는 점에서 박사 연구와 constructsteel "
+        "업무 모두와 직접 연결됨. 정량 평가도 포함되어 있어 검토 가치가 높음."
+    ),
+})
+
+
+def _enable_pick(monkeypatch):
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setenv("LLM_DAILY_PICK_MIN_ITEMS", "3")
+
+
+def test_pick_skipped_when_disabled():
+    items = [_scored_item(f"P{i}", 50) for i in range(10)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_SKIPPED
+    assert pick.pick_title == ""
+
+
+def test_pick_skipped_when_too_few_items(monkeypatch):
+    _enable_pick(monkeypatch)
+    items = [_scored_item("Only one", 60)]  # below LLM_DAILY_PICK_MIN_ITEMS=3
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_SKIPPED
+
+
+def test_pick_skipped_when_api_key_missing(monkeypatch):
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("LLM_DAILY_PICK_MIN_ITEMS", "1")
+    items = [_scored_item("Solo", 60)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_SKIPPED
+
+
+def test_pick_generated_returns_selected_title_and_reasoning(monkeypatch):
+    _enable_pick(monkeypatch)
+    monkeypatch.setattr(
+        "aec_intel_agent.llm_summarizer.call_llm",
+        lambda prompt, **kw: _GOOD_PICK_RESPONSE,
+    )
+    items = [
+        _scored_item("Paper A", 40, ["bim"]),
+        _scored_item("Paper B about steel monitoring", 80, ["structural_steel"]),
+        _scored_item("Paper C", 50, ["digital_twin"]),
+        _scored_item("Paper D", 35, []),
+    ]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_GENERATED
+    # The mock pointed to pick_index=2; after sorting by score desc,
+    # the second candidate is the next-highest after Paper B.
+    assert pick.pick_title  # non-empty
+    assert "BIM" in pick.reasoning
+
+
+def test_pick_failed_when_response_not_json(monkeypatch):
+    _enable_pick(monkeypatch)
+    monkeypatch.setattr(
+        "aec_intel_agent.llm_summarizer.call_llm",
+        lambda prompt, **kw: "not json at all",
+    )
+    items = [_scored_item(f"P{i}", 50) for i in range(5)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_FAILED
+
+
+def test_pick_failed_when_index_out_of_range(monkeypatch):
+    _enable_pick(monkeypatch)
+    bad_resp = json.dumps({"pick_index": 99, "reasoning": "x"})
+    monkeypatch.setattr(
+        "aec_intel_agent.llm_summarizer.call_llm",
+        lambda prompt, **kw: bad_resp,
+    )
+    items = [_scored_item(f"P{i}", 50) for i in range(5)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_FAILED
+
+
+def test_pick_failed_when_provider_raises(monkeypatch):
+    _enable_pick(monkeypatch)
+
+    def boom(prompt, **kw):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("aec_intel_agent.llm_summarizer.call_llm", boom)
+    items = [_scored_item(f"P{i}", 50) for i in range(5)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_FAILED
+
+
+def test_pick_display_text_combines_title_and_reasoning():
+    p = llm.TodaysPick(
+        status=llm.PICK_STATUS_GENERATED,
+        pick_title="Some Paper",
+        reasoning="중요한 이유 설명",
+    )
+    text = p.display_text
+    assert "Some Paper" in text
+    assert "중요한 이유" in text
+
+
+def test_pick_display_text_empty_when_skipped():
+    p = llm.TodaysPick(status=llm.PICK_STATUS_SKIPPED)
+    assert p.display_text == ""
+
+
+def test_pick_can_be_disabled_independently_of_summary(monkeypatch):
+    """LLM_DAILY_PICK_ENABLED=false turns off pick even when LLM_ENABLED=true."""
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setenv("LLM_DAILY_PICK_ENABLED", "false")
+    items = [_scored_item(f"P{i}", 60) for i in range(10)]
+    pick = llm.pick_top_item_of_day(items)
+    assert pick.status == llm.PICK_STATUS_SKIPPED
+
+
+def test_parse_pick_response_strips_code_fences():
+    fenced = "```json\n" + _GOOD_PICK_RESPONSE + "\n```"
+    items = [_scored_item(f"P{i}", 50) for i in range(5)]
+    pick = llm.parse_pick_response(fenced, items)
+    assert pick.status == llm.PICK_STATUS_GENERATED
+
+
 def test_notion_update_failure_does_not_crash(monkeypatch, tmp_path):
     """The full pipeline must keep going even when the Notion patch fails."""
     from aec_intel_agent import notion_client

@@ -176,8 +176,10 @@ def build_daily_briefing_properties(
     main_themes: list[str],
     markdown: str,
     github_url: str | None,
+    todays_pick: str | None = None,
+    pick_status: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    props: dict[str, Any] = {
         "Title": _title_prop(f"Daily Briefing — {date_str}"),
         "Date": _date_prop(date_str),
         "Total Items": _number_prop(total_collected),
@@ -187,6 +189,14 @@ def build_daily_briefing_properties(
         "Markdown Summary": _chunked_rich_text(markdown),
         "GitHub Output Path": _url_prop(github_url),
     }
+    # Optional daily-pick columns. Only included when the LLM step
+    # produced something; the create call retries without them if the
+    # user has not added these columns to their DB yet.
+    if todays_pick:
+        props["Today's Pick"] = _chunked_rich_text(todays_pick)
+    if pick_status:
+        props["Pick Reasoning Status"] = _select_prop(pick_status)
+    return props
 
 
 def build_research_item_properties(
@@ -399,6 +409,33 @@ def update_research_item_summary(
 
 _OPTIONAL_RESEARCH_PROPS = ("Full-text URL",)
 
+# Optional Daily Briefings columns. If the user has not added them to
+# the DB schema yet, the create call retries without them.
+_OPTIONAL_DAILY_PROPS = ("Today's Pick", "Pick Reasoning Status")
+
+
+def _create_daily_page_safely(
+    token: str, db_id: str, properties: dict[str, Any]
+) -> str:
+    """Create a Daily Briefings page, retrying without optional columns
+    when Notion rejects the request with a 400."""
+    try:
+        return _create_page(token, db_id, properties)
+    except requests.exceptions.HTTPError as exc:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        present_optional = [k for k in _OPTIONAL_DAILY_PROPS if k in properties]
+        if status == 400 and present_optional:
+            logger.info(
+                "Notion: daily DB does not accept %s — retrying without it.",
+                present_optional,
+            )
+            cleaned = {
+                k: v for k, v in properties.items() if k not in present_optional
+            }
+            return _create_page(token, db_id, cleaned)
+        raise
+
 
 def _create_research_page_safely(
     token: str, db_id: str, properties: dict[str, Any]
@@ -483,6 +520,8 @@ def upload_to_notion(
     items: list[StandardItem],
     total_collected: int,
     generated_at: datetime | None = None,
+    todays_pick: str | None = None,
+    pick_status: str | None = None,
 ) -> dict[str, int]:
     """Upload daily briefing + research items to Notion.
 
@@ -545,8 +584,10 @@ def upload_to_notion(
                 main_themes=_main_themes(items),
                 markdown=markdown,
                 github_url=_github_output_url(briefing_path),
+                todays_pick=todays_pick,
+                pick_status=pick_status,
             )
-            _create_page(token, daily_db, props)
+            _create_daily_page_safely(token, daily_db, props)
             result["daily_created"] = 1
             logger.info("Notion: created daily briefing for %s.", date_str)
         except Exception as exc:

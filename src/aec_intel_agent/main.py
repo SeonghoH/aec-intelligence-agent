@@ -20,7 +20,10 @@ from aec_intel_agent.collectors.crossref import CrossrefCollector
 from aec_intel_agent.config_loader import load_config
 from aec_intel_agent.deduplication import deduplicate_items
 from aec_intel_agent.full_text import process_items as run_full_text_pipeline
-from aec_intel_agent.llm_summarizer import process_items as run_llm_summarizer
+from aec_intel_agent.llm_summarizer import (
+    pick_top_item_of_day,
+    process_items as run_llm_summarizer,
+)
 from aec_intel_agent.notion_client import update_research_item_summary, upload_to_notion
 from aec_intel_agent.scoring import score_items
 from aec_intel_agent.seen_items import (
@@ -136,10 +139,22 @@ def build_briefing(
         total_collected=len(collected),
     )
 
+    # Daily "what should I read first?" pick — one extra short LLM call.
+    # Skipped gracefully when LLM is disabled or too few items survived.
+    try:
+        pick = pick_top_item_of_day(fresh)
+    except Exception as exc:
+        logger.warning("LLM daily pick raised unexpectedly: %s", exc)
+        pick = None
+    pick_text = pick.display_text if pick else None
+    pick_status = pick.status if pick else None
+
     upload_to_notion(
         briefing_path=output_path,
         items=fresh,
         total_collected=len(collected),
+        todays_pick=pick_text or None,
+        pick_status=pick_status,
     )
 
     # Push LLM summaries back to the corresponding Notion Research Items

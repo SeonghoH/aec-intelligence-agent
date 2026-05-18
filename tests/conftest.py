@@ -28,5 +28,7 @@ def _isolate_notion_env(monkeypatch):
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "UNPAYWALL_EMAIL",
+        "LLM_DAILY_PICK_ENABLED",
+        "LLM_DAILY_PICK_MIN_ITEMS",
     ):
         monkeypatch.delenv(var, raising=False)

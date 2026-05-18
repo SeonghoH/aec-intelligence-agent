@@ -46,6 +46,8 @@ jobs:
           LLM_MAX_ITEMS: ${{ secrets.LLM_MAX_ITEMS }}
           LLM_MIN_SCORE: ${{ secrets.LLM_MIN_SCORE }}
           LLM_MAX_CHARS: ${{ secrets.LLM_MAX_CHARS }}
+          LLM_DAILY_PICK_ENABLED: ${{ secrets.LLM_DAILY_PICK_ENABLED }}
+          LLM_DAILY_PICK_MIN_ITEMS: ${{ secrets.LLM_DAILY_PICK_MIN_ITEMS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

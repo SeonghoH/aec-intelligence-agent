@@ -311,6 +311,21 @@ Actions**:
 `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are wired up in the workflow
 for future providers but are not used while `LLM_PROVIDER=gemini`.
 
+### Today's Pick on the Daily Briefings page
+
+Beyond per-paper summaries, the pipeline also makes a single short LLM
+call each day to choose **one** paper for the user to read first. The
+result is saved to the matching Daily Briefings page:
+
+- `Today's Pick` (Rich text) — selected paper title + 3-5 sentence
+  Korean reasoning explaining why it leads, framed against the user's
+  PhD / constructsteel / LCA WG workflows.
+- `Pick Reasoning Status` (Select: `Generated`, `Skipped`, `Failed`).
+
+Skipped automatically when fewer than `LLM_DAILY_PICK_MIN_ITEMS` items
+(default `5`) survive scoring. Disable with `LLM_DAILY_PICK_ENABLED=false`
+even when the rest of the LLM step is on.
+
 ### Notion properties to add manually
 
 The LLM summary writes to optional columns on the **Research Items**
@@ -331,6 +346,16 @@ Notion, add these properties to the DB:
 | Relevance to LCA WG | Rich text |
 | Read Priority | Select (options: `High`, `Medium`, `Low`) |
 | LLM Summary Status | Select (options: `Summarized`, `Failed`, `Skipped - No Full Text`, `Skipped - Low Score`, `Not Attempted`) |
+
+And on the **Daily Briefings** database:
+
+| Property name | Type |
+|---|---|
+| Today's Pick | Rich text |
+| Pick Reasoning Status | Select (options: `Generated`, `Skipped`, `Failed`) |
+
+`scripts/add_llm_properties.py` adds both databases' columns in one
+run; safe to re-run.
 
 ### Cost control
 

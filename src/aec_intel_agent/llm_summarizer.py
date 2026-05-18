@@ -67,6 +67,18 @@ DEFAULT_MAX_ITEMS = 1
 DEFAULT_MIN_SCORE = 80
 DEFAULT_MAX_CHARS = 40000
 
+# Daily-pick configuration: a short LLM call that selects ONE paper of
+# the day for the Daily Briefings page. Skipped when fewer than this
+# many items survive scoring.
+DAILY_PICK_DEFAULT_MIN_ITEMS = 5
+DAILY_PICK_CANDIDATE_LIMIT = 5  # Top-N items shown to the LLM.
+DAILY_PICK_SUMMARY_CHAR_CAP = 280
+
+# Daily-pick status vocabulary (matches the Notion select options).
+PICK_STATUS_GENERATED = "Generated"
+PICK_STATUS_SKIPPED = "Skipped"
+PICK_STATUS_FAILED = "Failed"
+
 CANDIDATE_SOURCE_TYPES = {"paper", "preprint"}
 
 
@@ -109,6 +121,18 @@ def get_max_chars() -> int:
     return _int_env("LLM_MAX_CHARS", DEFAULT_MAX_CHARS)
 
 
+def get_pick_min_items() -> int:
+    return _int_env("LLM_DAILY_PICK_MIN_ITEMS", DAILY_PICK_DEFAULT_MIN_ITEMS)
+
+
+def is_daily_pick_enabled() -> bool:
+    """Whether to attempt the daily pick. Defaults to LLM_ENABLED."""
+    raw = os.environ.get("LLM_DAILY_PICK_ENABLED")
+    if raw is None:
+        return is_enabled()
+    return _truthy(raw)
+
+
 def _provider_api_key(provider: str) -> str | None:
     if provider == "gemini":
         return os.environ.get("GEMINI_API_KEY")
@@ -122,6 +146,24 @@ def _provider_api_key(provider: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Structured summary type
 # ---------------------------------------------------------------------------
+
+
+@dataclass
+class TodaysPick:
+    """Output of the per-day "what should I read first?" LLM call."""
+
+    status: str = PICK_STATUS_SKIPPED
+    pick_title: str = ""
+    reasoning: str = ""
+
+    @property
+    def display_text(self) -> str:
+        """Notion-friendly combined text. Empty when nothing was picked."""
+        if self.status != PICK_STATUS_GENERATED:
+            return ""
+        if not self.pick_title:
+            return self.reasoning
+        return f"📌 {self.pick_title}\n\n{self.reasoning}".strip()
 
 
 @dataclass
@@ -381,6 +423,163 @@ def summarize_item(
     except Exception as exc:
         logger.warning("LLM: response parse failed: %s", exc)
         return LLMSummary(summary_status=STATUS_FAILED)
+
+
+# ---------------------------------------------------------------------------
+# Daily pick — single "what should I read first?" selection
+# ---------------------------------------------------------------------------
+
+
+_PICK_PROMPT_TEMPLATE = """\
+당신은 건설/AEC 분야 연구 보조 에이전트입니다.
+사용자(Seongho HA)는 다음 영역에서 일합니다:
+
+- BIM, openBIM, IFC, 디지털 건설, 디지털 트윈
+- 강구조 / constructsteel (산업 모니터링)
+- 박사 연구: BIM·디지털 트윈·AI 기반 건설 자동화
+- LCA WG (embodied carbon, 건설 LCA)
+
+오늘 수집된 상위 후보 논문 {n}개:
+
+{candidates}
+
+위 {n}개 후보 중, 사용자가 오늘 가장 먼저 읽을 가치가 있는 1편을 선택하세요.
+
+선택 기준 (우선순위 순):
+1) 박사 연구(BIM·디지털 트윈·AI 자동화)와의 직접 관련성
+2) constructsteel 강구조 모니터링 업무와의 연결
+3) LCA WG / embodied carbon 워킹그룹 활동과의 연결
+4) 방법론의 참신성과 실무 응용 가능성
+
+엄격한 규칙:
+- 사실을 지어내지 마세요. 후보 메타데이터에 없는 내용을 추가하지 마세요.
+- 출력은 반드시 아래 JSON 형식만 사용하세요. 마크다운/추가 설명 없음.
+- 이유는 한국어 3~5문장. 왜 이 논문을 골랐는지, 어느 워크플로우와 연결되는지 구체적으로.
+
+JSON 스키마:
+{{
+  "pick_index": 1과 {n} 사이의 정수,
+  "reasoning": "3~5문장 한국어"
+}}
+
+JSON만 출력하세요:"""
+
+
+def _format_pick_candidates(items: list[StandardItem]) -> str:
+    lines: list[str] = []
+    for idx, item in enumerate(items, 1):
+        title = (item.title or "").strip() or "(제목 없음)"
+        tags = ", ".join(item.topics or []) or "(없음)"
+        summary = (item.summary or "").strip()
+        if len(summary) > DAILY_PICK_SUMMARY_CHAR_CAP:
+            summary = summary[: DAILY_PICK_SUMMARY_CHAR_CAP - 1].rstrip() + "…"
+        if not summary:
+            summary = "(초록 없음)"
+        lines.append(
+            f"[{idx}] {title}\n"
+            f"    점수: {item.score} | 태그: {tags}\n"
+            f"    요약: {summary}"
+        )
+    return "\n\n".join(lines)
+
+
+def build_pick_prompt(items: list[StandardItem]) -> str:
+    return _PICK_PROMPT_TEMPLATE.format(
+        n=len(items),
+        candidates=_format_pick_candidates(items),
+    )
+
+
+def parse_pick_response(text: str, items: list[StandardItem]) -> TodaysPick:
+    """Parse the LLM pick response. Raises ValueError on failure."""
+    if not text:
+        raise ValueError("empty LLM pick response")
+
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned, flags=re.DOTALL)
+
+    match = _JSON_BLOCK.search(cleaned)
+    if not match:
+        raise ValueError("no JSON object in pick response")
+
+    try:
+        data = json.loads(match.group(0))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid JSON in pick response: {exc}") from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("pick response did not parse to an object")
+
+    try:
+        idx = int(data.get("pick_index", 0))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"pick_index not an integer: {exc}") from exc
+
+    if not 1 <= idx <= len(items):
+        raise ValueError(f"pick_index {idx} out of range 1..{len(items)}")
+
+    reasoning = str(data.get("reasoning") or "").strip()
+    if not reasoning:
+        raise ValueError("pick reasoning is empty")
+
+    return TodaysPick(
+        status=PICK_STATUS_GENERATED,
+        pick_title=(items[idx - 1].title or "").strip(),
+        reasoning=reasoning,
+    )
+
+
+def pick_top_item_of_day(items: list[StandardItem]) -> TodaysPick:
+    """Ask the LLM to pick one paper of the day. Never raises.
+
+    Skipped gracefully (status=Skipped) when:
+    - the daily-pick feature is disabled,
+    - no API key is configured for the provider,
+    - fewer than LLM_DAILY_PICK_MIN_ITEMS items are available.
+    """
+    if not is_daily_pick_enabled():
+        logger.info("LLM pick: disabled — skipping daily pick.")
+        return TodaysPick(status=PICK_STATUS_SKIPPED)
+
+    provider = get_provider()
+    api_key = _provider_api_key(provider)
+    if not api_key:
+        logger.info(
+            "LLM pick: API key for %r missing — skipping daily pick.", provider
+        )
+        return TodaysPick(status=PICK_STATUS_SKIPPED)
+
+    min_items = get_pick_min_items()
+    if len(items) < min_items:
+        logger.info(
+            "LLM pick: only %d items (need ≥%d) — skipping daily pick.",
+            len(items), min_items,
+        )
+        return TodaysPick(status=PICK_STATUS_SKIPPED)
+
+    candidates = sorted(items, key=lambda i: i.score, reverse=True)[
+        :DAILY_PICK_CANDIDATE_LIMIT
+    ]
+    prompt = build_pick_prompt(candidates)
+
+    model = get_model()
+    logger.info(
+        "LLM pick: choosing today's pick from %d candidates with %s/%s.",
+        len(candidates), provider, model,
+    )
+
+    try:
+        raw = call_llm(prompt, provider=provider, model=model, api_key=api_key)
+    except Exception as exc:
+        logger.warning("LLM pick: provider call failed: %s", exc)
+        return TodaysPick(status=PICK_STATUS_FAILED)
+
+    try:
+        return parse_pick_response(raw, candidates)
+    except Exception as exc:
+        logger.warning("LLM pick: response parse failed: %s", exc)
+        return TodaysPick(status=PICK_STATUS_FAILED)
 
 
 # ---------------------------------------------------------------------------

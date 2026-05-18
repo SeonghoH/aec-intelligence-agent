@@ -33,8 +33,8 @@ def _headers(token: str) -> dict[str, str]:
     }
 
 
-def _find_research_db_id(token: str) -> str | None:
-    """Use Notion search to find a DB titled 'Research Items'."""
+def _find_db_id_by_title(token: str, wanted_title: str) -> str | None:
+    """Use Notion search to find a DB by its title (case-insensitive)."""
     r = requests.post(
         f"{API_BASE}/search",
         headers=_headers(token),
@@ -42,16 +42,34 @@ def _find_research_db_id(token: str) -> str | None:
         timeout=15,
     )
     r.raise_for_status()
+    target = wanted_title.strip().lower()
     for db in r.json().get("results", []):
         title_parts = db.get("title", [])
         title = "".join(t.get("plain_text", "") for t in title_parts)
-        if title.strip().lower() == "research items":
+        if title.strip().lower() == target:
             return db.get("id")
     return None
 
 
-# Property schema additions. Notion treats this as an idempotent merge:
-# names that already exist are left alone; new names are appended.
+# Property schema additions for Daily Briefings DB. Hosts the "Today's
+# Pick" output from the daily-pick LLM call.
+DAILY_PROPERTIES_TO_ADD: dict[str, dict] = {
+    "Today's Pick": {"rich_text": {}},
+    "Pick Reasoning Status": {
+        "select": {
+            "options": [
+                {"name": "Generated", "color": "green"},
+                {"name": "Skipped", "color": "gray"},
+                {"name": "Failed", "color": "red"},
+            ]
+        }
+    },
+}
+
+
+# Property schema additions for Research Items DB. Notion treats this
+# as an idempotent merge: names that already exist are left alone; new
+# names are appended.
 PROPERTIES_TO_ADD: dict[str, dict] = {
     "Detailed Summary": {"rich_text": {}},
     "Research Question": {"rich_text": {}},
@@ -85,63 +103,78 @@ PROPERTIES_TO_ADD: dict[str, dict] = {
 }
 
 
-def main() -> int:
-    token = os.environ.get("NOTION_TOKEN", "").strip()
-    if not token:
-        print("❌ NOTION_TOKEN not set in environment/.env.", file=sys.stderr)
-        return 1
-
-    # Prefer .env DB ID if it works; otherwise discover via search.
-    db_id = os.environ.get("NOTION_RESEARCH_DB_ID", "").strip()
+def _resolve_db(token: str, env_var: str, fallback_title: str) -> str | None:
+    """Prefer the env DB ID if it works; otherwise discover via /search."""
+    db_id = os.environ.get(env_var, "").strip()
     if db_id:
         r = requests.get(
             f"{API_BASE}/databases/{db_id}",
             headers=_headers(token),
             timeout=15,
         )
-        if r.status_code != 200:
-            print(
-                f"⚠️  NOTION_RESEARCH_DB_ID returned HTTP {r.status_code}. "
-                "Falling back to /search…"
-            )
-            db_id = None
+        if r.status_code == 200:
+            return db_id
+        print(
+            f"⚠️  {env_var} returned HTTP {r.status_code}. "
+            f"Falling back to /search for '{fallback_title}'…"
+        )
+    discovered = _find_db_id_by_title(token, fallback_title)
+    if discovered:
+        print(f"ℹ️  Discovered {fallback_title} DB id: {discovered}")
+    return discovered
 
-    if not db_id:
-        discovered = _find_research_db_id(token)
-        if not discovered:
-            print(
-                "❌ Could not find a database titled 'Research Items' "
-                "that this integration can access.",
-                file=sys.stderr,
-            )
-            return 1
-        print(f"ℹ️  Discovered Research Items DB id: {discovered}")
-        db_id = discovered
 
-    print(f"→ Updating Research Items DB ({db_id[:8]}…) with 11 properties.")
-
+def _patch_db(
+    token: str, db_id: str, schema: dict[str, dict], label: str
+) -> bool:
+    print(
+        f"→ Updating {label} DB ({db_id[:8]}…) with {len(schema)} properties."
+    )
     r = requests.patch(
         f"{API_BASE}/databases/{db_id}",
         headers=_headers(token),
-        json={"properties": PROPERTIES_TO_ADD},
+        json={"properties": schema},
         timeout=30,
     )
-
     if r.status_code != 200:
-        print(f"❌ PATCH failed: HTTP {r.status_code}")
+        print(f"❌ {label}: PATCH failed (HTTP {r.status_code})")
         print(r.text[:600])
-        return 1
-
-    print("✅ Done. Verifying current property names …")
+        return False
+    # Verify.
     r = requests.get(
         f"{API_BASE}/databases/{db_id}", headers=_headers(token), timeout=15
     )
     if r.status_code == 200:
         existing = r.json().get("properties", {})
-        for name in PROPERTIES_TO_ADD:
+        for name in schema:
             present = "✅" if name in existing else "❌"
             print(f"  {present} {name}")
-    return 0
+    return True
+
+
+def main() -> int:
+    token = os.environ.get("NOTION_TOKEN", "").strip()
+    if not token:
+        print("❌ NOTION_TOKEN not set in environment/.env.", file=sys.stderr)
+        return 1
+
+    ok = True
+
+    research_db = _resolve_db(token, "NOTION_RESEARCH_DB_ID", "Research Items")
+    if research_db:
+        ok = _patch_db(token, research_db, PROPERTIES_TO_ADD, "Research Items") and ok
+    else:
+        print("❌ Could not locate Research Items DB.", file=sys.stderr)
+        ok = False
+
+    daily_db = _resolve_db(token, "NOTION_DAILY_DB_ID", "Daily Briefings")
+    if daily_db:
+        ok = _patch_db(token, daily_db, DAILY_PROPERTIES_TO_ADD, "Daily Briefings") and ok
+    else:
+        print("❌ Could not locate Daily Briefings DB.", file=sys.stderr)
+        ok = False
+
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
