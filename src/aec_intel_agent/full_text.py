@@ -73,6 +73,17 @@ UNPAYWALL_API_BASE = "https://api.unpaywall.org/v2"
 UNPAYWALL_DEFAULT_EMAIL = "aec-intelligence-agent@example.com"
 UNPAYWALL_TIMEOUT_SECONDS = 10
 
+# Elsevier ScienceDirect API — text-and-data-mining endpoint.
+# Returns the full article text directly as JSON, bypassing the PDF
+# download/extract path. Requires the ELSEVIER_API_KEY env var, which
+# is provisioned to SKKU researchers (or any institution with a TDM
+# agreement) at https://dev.elsevier.com after accepting the TDM
+# clause. The key is IP-restricted by Elsevier; if it stops working
+# from CI, an InstToken can be added via the X-ELS-Insttoken header.
+ELSEVIER_API_BASE = "https://api.elsevier.com/content/article/doi"
+ELSEVIER_DOI_PREFIX = "10.1016/"  # Elsevier-published DOIs
+ELSEVIER_TIMEOUT_SECONDS = 30
+
 _ARXIV_ID_PATTERN = re.compile(
     r"arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)", re.IGNORECASE
 )
@@ -187,6 +198,75 @@ def unpaywall_lookup(
     pdf_url = best.get("url_for_pdf") or best.get("url")
     if pdf_url:
         return str(pdf_url)
+    return None
+
+
+def is_elsevier_doi(doi: str | None) -> bool:
+    """True if the DOI is in the Elsevier 10.1016/* prefix."""
+    if not doi:
+        return False
+    clean = (doi or "").strip().lower()
+    clean = clean.removeprefix("https://doi.org/").removeprefix("doi:")
+    return clean.startswith(ELSEVIER_DOI_PREFIX)
+
+
+def fetch_elsevier_text(
+    doi: str, *, api_key: str | None = None
+) -> str | None:
+    """Fetch full article text via Elsevier's ScienceDirect TDM endpoint.
+
+    Returns the article body as a single string, or ``None`` if the key
+    is missing, the DOI is unknown, or the request fails. Never raises.
+
+    Note: this endpoint bypasses the PDF download path entirely — the
+    response is already extracted text, so we skip pypdf for these
+    items.
+    """
+    key = api_key or os.environ.get("ELSEVIER_API_KEY")
+    if not key:
+        return None
+    doi_clean = (doi or "").strip()
+    if not doi_clean:
+        return None
+    doi_clean = doi_clean.removeprefix("https://doi.org/").removeprefix("doi:")
+
+    try:
+        response = requests.get(
+            f"{ELSEVIER_API_BASE}/{doi_clean}",
+            headers={
+                "X-ELS-APIKey": key,
+                "Accept": "application/json",
+            },
+            timeout=ELSEVIER_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:
+        logger.info("Elsevier: request failed for %s: %s", doi_clean, exc)
+        return None
+
+    if response.status_code != 200:
+        if response.status_code in (401, 403):
+            logger.warning(
+                "Elsevier: HTTP %d for %s — check ELSEVIER_API_KEY or "
+                "InstToken.", response.status_code, doi_clean,
+            )
+        elif response.status_code != 404:
+            logger.info(
+                "Elsevier: HTTP %d for %s", response.status_code, doi_clean,
+            )
+        return None
+
+    try:
+        body = response.json()
+    except Exception:
+        return None
+
+    ft = body.get("full-text-retrieval-response") if isinstance(body, dict) else None
+    if not isinstance(ft, dict):
+        return None
+
+    text = ft.get("originalText")
+    if isinstance(text, str) and text.strip():
+        return text
     return None
 
 
@@ -321,13 +401,54 @@ def _with_status(
     return item.copy(update=updates)
 
 
+def _write_debug_text(
+    item: StandardItem, text: str, debug_dir: Path | None
+) -> str | None:
+    """Write extracted text to the local debug directory. Returns path or None."""
+    if debug_dir is None:
+        return None
+    try:
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        target = debug_dir / f"{_safe_filename(item)}.txt"
+        target.write_text(text, encoding="utf-8")
+        return str(target)
+    except Exception as exc:
+        logger.warning("Full-text: failed to write debug file: %s", exc)
+        return None
+
+
 def process_item(
     item: StandardItem,
     debug_dir: Path | None = None,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_chars: int | None = None,
 ) -> StandardItem:
-    """Run the full-text pipeline for one item. Never raises."""
+    """Run the full-text pipeline for one item. Never raises.
+
+    Order of strategies (first one that returns text wins):
+    1. Elsevier ScienceDirect TDM API (10.1016/* DOIs, ELSEVIER_API_KEY required)
+    2. arXiv / direct .pdf / Unpaywall → download PDF + pypdf extract
+    """
+    limit = max_chars if max_chars is not None else get_max_chars()
+
+    # ---- 1. Elsevier text-and-data-mining shortcut -------------------------
+    if is_elsevier_doi(item.doi):
+        text = fetch_elsevier_text(item.doi or "")
+        if text:
+            text = text[:limit]
+            debug_path = _write_debug_text(item, text, debug_dir)
+            logger.info(
+                "Elsevier: extracted %d chars for %s",
+                len(text), (item.title or "")[:60],
+            )
+            return _with_status(
+                item,
+                STATUS_FULL_TEXT_EXTRACTED,
+                full_text_url=f"https://doi.org/{item.doi}",
+                full_text_path=debug_path,
+            )
+
+    # ---- 2. PDF download path (arXiv / direct PDF / Unpaywall) -------------
     pdf_url = detect_pdf_url(item)
     if pdf_url is None:
         return _with_status(item, STATUS_LOGIN_REQUIRED)
@@ -351,15 +472,7 @@ def process_item(
     if not text.strip():
         return _with_status(item, STATUS_EXTRACTION_FAILED, full_text_url=pdf_url)
 
-    debug_path: str | None = None
-    if debug_dir is not None:
-        try:
-            debug_dir.mkdir(parents=True, exist_ok=True)
-            target = debug_dir / f"{_safe_filename(item)}.txt"
-            target.write_text(text, encoding="utf-8")
-            debug_path = str(target)
-        except Exception as exc:
-            logger.warning("Full-text: failed to write debug file: %s", exc)
+    debug_path = _write_debug_text(item, text, debug_dir)
 
     return _with_status(
         item,

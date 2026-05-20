@@ -54,6 +54,9 @@ jobs:
           # Unpaywall identification email (free, no key). If unset, a
           # generic placeholder is used; the API will still respond.
           UNPAYWALL_EMAIL: ${{ secrets.UNPAYWALL_EMAIL }}
+          # Elsevier ScienceDirect TDM API key. When present, the pipeline
+          # fetches full text for paywalled 10.1016/* DOIs directly.
+          ELSEVIER_API_KEY: ${{ secrets.ELSEVIER_API_KEY }}
         run: python -m aec_intel_agent.main
 
       - name: Upload briefing artifact

@@ -167,15 +167,19 @@ After scoring, the pipeline attempts to find and extract open-access full
 text for a small number of the highest-relevance research items. This is
 strictly conservative:
 
-- **Only open-access sources are attempted.** Three paths, in order:
-  1. arXiv abstract URLs are resolved to the `pdf` URL.
-  2. URLs that already end in `.pdf` are fetched directly.
-  3. For Crossref papers with a DOI, [Unpaywall](https://unpaywall.org/)
-     is queried for an author-deposited open-access copy (e.g. a
-     university repository). The Unpaywall API is free and requires no
-     key, but a contact email is recommended via `UNPAYWALL_EMAIL`.
-  Anything else (closed-access publisher pages, paywalled domains with
-  no OA mirror) is skipped with status `Login Required / Skipped`.
+- **Four paths, in order** — the first one that produces text wins:
+  1. **Elsevier ScienceDirect TDM API** for `10.1016/*` DOIs, when
+     `ELSEVIER_API_KEY` is set. Returns full article text as JSON, so
+     no PDF download or pypdf extraction is needed.
+  2. **arXiv** abstract URLs are resolved to the `pdf` URL.
+  3. **Direct PDF**: URLs that already end in `.pdf` are fetched
+     directly.
+  4. **Unpaywall**: for Crossref papers with a DOI not covered above,
+     [Unpaywall](https://unpaywall.org/) is queried for an
+     author-deposited open-access copy (university repository or arXiv
+     mirror). Free, no key needed, `UNPAYWALL_EMAIL` recommended.
+  Anything else (closed-access publisher pages with no OA mirror and no
+  TDM agreement) is skipped with status `Login Required / Skipped`.
 - **No login, no cookies, no scraping.** Browser automation, paywall
   bypass, and login flows are explicitly not implemented.
 - **PDFs are never persisted.** They are downloaded into memory with a
@@ -200,6 +204,30 @@ strictly conservative:
 | `FULL_TEXT_MAX_ITEMS` | `3` | Cap on the number of items processed per run |
 | `FULL_TEXT_MAX_CHARS` | `60000` | Cap on the size of extracted text per item |
 | `UNPAYWALL_EMAIL` | placeholder | Email sent to Unpaywall for identification (recommended: your real address) |
+| `ELSEVIER_API_KEY` | unset | Elsevier ScienceDirect TDM key (see below). When present, unlocks full-text access for paywalled `10.1016/*` papers without leaving the workflow. |
+
+### Elsevier ScienceDirect TDM (optional, institution required)
+
+If your institution has an Elsevier subscription (most major research
+universities do), you can get a free Text-and-Data-Mining API key that
+unlocks programmatic access to ScienceDirect full text — exactly the
+class of paywalled BIM / Steel / Engineering Structures papers our
+Crossref collector keeps finding but cannot follow on its own.
+
+1. Visit <https://dev.elsevier.com/apikey/manage> and sign in with your
+   institutional email.
+2. *Create API Key*. Fill in any label and your repo URL.
+3. **Critical:** accept BOTH the regular API agreement and the
+   *ScienceDirect full text for text-and-datamining purposes* agreement
+   (a separate checkbox lower on the form). Without the second one the
+   key will only return metadata.
+4. Add the key to `.env` as `ELSEVIER_API_KEY=...` and to your GitHub
+   Actions repository secrets under the same name.
+
+The key works from any IP once the TDM agreement is on file (no
+InstToken needed for ScienceDirect via this path). If you later see
+HTTP 401/403, add an InstToken via the `X-ELS-Insttoken` header — your
+library can issue one.
 
 **Status values (written to Notion's `Full-text Status` select field)**
 
