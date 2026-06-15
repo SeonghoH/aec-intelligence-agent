@@ -16,6 +16,7 @@
     "doi:10.1016/j.biombioe.2026.109626",
     "doi:10.1016/j.biortech.2026.134499",
     "doi:10.1016/j.clrc.2026.100432",
+    "doi:10.1016/j.conbuildmat.2026.147044",
     "doi:10.1016/j.dte.2026.100112",
     "doi:10.1016/j.eiar.2026.108478",
     "doi:10.1016/j.enbuild.2026.117505",
@@ -43,6 +44,7 @@
     "doi:10.3390/buildings16122307",
     "doi:10.5194/isprs-annals-x-4-w8-2025-171-2026",
     "doi:10.55737/rl.v5i1.26181",
+    "doi:10.5890/jeam.2026.12.002",
     "doi:10.62335/sinergi.v2i7.1506",
     "title:a bim-based framework for automated building code extraction and compliance checking",
     "title:a fully automated dm-bim-bem pipeline enabling graph-based intelligence, interoperability, and performance-driven early design",
@@ -62,6 +64,7 @@
     "title:bim2bi: an etl architecture based on openbim standards for integrating bim data into business intelligence environments",
     "title:building insulation materials for the best trade-off between gwp and costs. an lca-based approach across italian climatic zones",
     "title:camflow+: hybrid motion bases for 2d camera motion estimation with stabilization applications",
+    "title:comparative environmental assessment of wet and dry carbonation for construction materials using an lca approach integrating co2 sequestration kinetics",
     "title:comparative evaluation of clutter removal methods for smartphone lidar-based scan-to-bim preprocessing",
     "title:convolutional sparse coding via the locally competitive algorithm on loihi 2",
     "title:cross-platform framework for semantic bim-to-xr data exchange in immersive construction informatics",
@@ -117,6 +120,7 @@
     "title:stress and deformation monitoring and optimization in bridge construction stage based on bim technology",
     "title:sustainable abrasive flow finishing media via integrated mcdm-lca: quantitative environmental and performance assessment",
     "title:teaching collaborative bim in higher education: a new pedagogical framework",
+    "title:temporal injustice in aviation emissions: a new paradigm for lca accountability",
     "title:towards autonomous accelerator design: fpga accelerator generation with secda",
     "title:transformer-guided graph attention for direct cardiac mesh reconstruction: a structural digital twin framework",
     "title:transition-based digital twin modelling for alzheimer's disease under sparse longitudinal data",
@@ -172,6 +176,7 @@
     "url:https://doi.org/10.1016/j.biombioe.2026.109626",
     "url:https://doi.org/10.1016/j.biortech.2026.134499",
     "url:https://doi.org/10.1016/j.clrc.2026.100432",
+    "url:https://doi.org/10.1016/j.conbuildmat.2026.147044",
     "url:https://doi.org/10.1016/j.dte.2026.100112",
     "url:https://doi.org/10.1016/j.eiar.2026.108478",
     "url:https://doi.org/10.1016/j.enbuild.2026.117505",
@@ -199,6 +204,7 @@
     "url:https://doi.org/10.3390/buildings16122307",
     "url:https://doi.org/10.5194/isprs-annals-x-4-w8-2025-171-2026",
     "url:https://doi.org/10.55737/rl.v5i1.26181",
+    "url:https://doi.org/10.5890/jeam.2026.12.002",
     "url:https://doi.org/10.62335/sinergi.v2i7.1506"
   ]
 }
